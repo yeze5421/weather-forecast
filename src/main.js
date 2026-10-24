@@ -1,5 +1,8 @@
 import './style.css';
+import './themes.css';
 import { version } from '../package.json';
+import { DEFAULT_THEME, resolveTheme, applyTheme } from './themes.js';
+import { themePickerMarkup } from './theme-picker.js';
 import { deriveWeather, createDemoSnapshot, formatPercent, summarizeHistory } from './weather-model.js';
 import { weatherSceneMarkup, updateWeatherScene } from './weather-scene.js';
 
@@ -31,10 +34,12 @@ const weatherIcon = id => ({ sunny: 'sun', cloudy: 'cloud', rainy: 'rain', storm
 const $ = selector => document.querySelector(selector);
 const $$ = selector => [...document.querySelectorAll(selector)];
 const desktop = Boolean(window.weatherStation);
-const defaults = { source: 'cpu', launchAtLogin: false, pinned: false, reducedMotion: false, refreshInterval: 2000, stormThreshold: 90 };
+const defaults = { source: 'cpu', launchAtLogin: false, pinned: false, reducedMotion: false, refreshInterval: 2000, stormThreshold: 90, theme: DEFAULT_THEME };
 let preferences = { ...defaults };
 try { if (!desktop) preferences = { ...defaults, ...JSON.parse(localStorage.getItem('cirrus-preferences') || '{}') }; } catch {}
 if (!['cpu', 'gpu'].includes(preferences.source)) preferences.source = 'cpu';
+preferences.theme = resolveTheme(preferences.theme).id;
+applyTheme(preferences.theme);
 let demo = !desktop;
 let demoWeather = 'sunny';
 let snapshot = desktop ? null : makeDemo(demoWeather);
@@ -106,7 +111,7 @@ app.innerHTML = `
 
         <section id="history-view" class="view" hidden><button class="back-button mobile-only" data-view="overview">${icon('back')} Back to overview</button><div class="page-heading"><div><div class="eyebrow">EVERY LITTLE CHANGE.</div><h1>A record of your sky<span class="heading-dot">.</span></h1><p>Keep track of the passing clouds.</p></div><button id="export-history" class="secondary-button">${icon('download')} Export CSV</button></div><div class="history-stats"><article><span>Readings</span><strong id="history-count">0</strong><small>This session · Last 30 minutes</small></article><article><span>Average load</span><strong id="history-average">—</strong><small id="history-source">CPU usage</small></article><article><span>Peak load</span><strong id="history-maximum">—</strong><small>The busiest moment in your sky</small></article></div><section class="records-card"><div class="section-heading"><h3>Recent readings</h3><span id="history-mode" class="subtle-label">Live data</span></div><div class="table-scroll"><table><thead><tr><th>Time</th><th>Weather</th><th>CPU</th><th>GPU</th><th>Memory</th><th>Fan RPM</th></tr></thead><tbody id="history-rows"></tbody></table></div><p class="records-note">Readings from this session. Preview and live records are kept separately.</p></section></section>
 
-        <section id="settings-view" class="view" hidden><button class="back-button mobile-only" data-view="overview">${icon('back')} Back to overview</button><div class="page-heading"><div><div class="eyebrow">MAKE YOURSELF AT HOME.</div><h1>Make this sky yours<span class="heading-dot">.</span></h1><p>Set a rhythm that feels right.</p></div></div><div class="settings-card"><h3>Observation preferences</h3><label class="setting-row"><span><b>Weather source</b><small>Choose which load sets the weather</small></span><select id="setting-source"><option value="cpu">CPU · Processor</option><option value="gpu">GPU · Graphics</option></select></label><label class="setting-row"><span><b>Sampling interval</b><small>Less frequent readings use fewer resources</small></span><select id="setting-refresh"><option value="1000">Every 1s</option><option value="2000">Every 2s</option><option value="5000">Every 5s</option></select></label><div class="setting-row threshold-row"><span><b>Storm threshold</b><small>Show a thunderstorm when memory reaches this level</small></span><label class="range-setting"><input id="setting-threshold" aria-label="Memory threshold for thunderstorms" type="range" min="70" max="98" step="1"><output id="threshold-output">90%</output></label></div><h3 class="settings-subheading">A quieter companion</h3><label class="setting-row"><span><b>Reduce motion</b><small>Pause clouds, rain and the windmill</small></span><input class="switch" id="setting-motion" type="checkbox" role="switch"></label><label class="setting-row"><span><b>Always on top</b><small id="pin-setting-note">Keep the weather in view while you work</small></span><input class="switch" id="setting-pinned" type="checkbox" role="switch"></label><label class="setting-row"><span><b>Launch at login</b><small id="login-setting-note">Start in the system tray when you sign in</small></span><input class="switch" id="setting-login" type="checkbox" role="switch"></label></div><div class="about-card"><span class="brand-mark">${icon('sun')}</span><div><strong>Cirrus <span>${version} · DESKTOP WEATHER</span></strong><p>Weather from your computer. A little calm for you.</p></div></div><p class="settings-footnote">GPU and fan readings depend on hardware and driver support. Missing values stay blank.</p></section>
+        <section id="settings-view" class="view" hidden><button class="back-button mobile-only" data-view="overview">${icon('back')} Back to overview</button><div class="page-heading"><div><div class="eyebrow">MAKE YOURSELF AT HOME.</div><h1>Make this sky yours<span class="heading-dot">.</span></h1><p>Set a rhythm that feels right.</p></div></div>${themePickerMarkup(icon)}<div class="settings-card"><h3>Observation preferences</h3><label class="setting-row"><span><b>Weather source</b><small>Choose which load sets the weather</small></span><select id="setting-source"><option value="cpu">CPU · Processor</option><option value="gpu">GPU · Graphics</option></select></label><label class="setting-row"><span><b>Sampling interval</b><small>Less frequent readings use fewer resources</small></span><select id="setting-refresh"><option value="1000">Every 1s</option><option value="2000">Every 2s</option><option value="5000">Every 5s</option></select></label><div class="setting-row threshold-row"><span><b>Storm threshold</b><small>Show a thunderstorm when memory reaches this level</small></span><label class="range-setting"><input id="setting-threshold" aria-label="Memory threshold for thunderstorms" type="range" min="70" max="98" step="1"><output id="threshold-output">90%</output></label></div><h3 class="settings-subheading">A quieter companion</h3><label class="setting-row"><span><b>Reduce motion</b><small>Pause clouds, rain and the windmill</small></span><input class="switch" id="setting-motion" type="checkbox" role="switch"></label><label class="setting-row"><span><b>Always on top</b><small id="pin-setting-note">Keep the weather in view while you work</small></span><input class="switch" id="setting-pinned" type="checkbox" role="switch"></label><label class="setting-row"><span><b>Launch at login</b><small id="login-setting-note">Start in the system tray when you sign in</small></span><input class="switch" id="setting-login" type="checkbox" role="switch"></label></div><div class="about-card"><span class="brand-mark">${icon('sun')}</span><div><strong>Cirrus <span>${version} · DESKTOP WEATHER</span></strong><p>Weather from your computer. A little calm for you.</p></div></div><p class="settings-footnote">GPU and fan readings depend on hardware and driver support. Missing values stay blank.</p></section>
       </main>
     </div>
   </div>
@@ -137,6 +142,9 @@ async function savePreferences(patch) {
 }
 
 function syncPreferences() {
+  const theme = applyTheme(preferences.theme);
+  $$('[data-theme-option]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.themeOption === theme.id)));
+  $('#current-theme').textContent = theme.name;
   $$('[data-source]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.source === preferences.source)));
   $('#setting-source').value = preferences.source;
   $('#setting-refresh').value = String(preferences.refreshInterval);
@@ -291,10 +299,10 @@ function renderChart() {
   if (segment.length) paths.push(segment);
   const lineMarkup = paths.map(segment => {
     const d = segment.map((p,i) => `${i ? 'L' : 'M'}${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(' ');
-    return `<path d="${d} L${segment.at(-1).x.toFixed(2)},${bottom} L${segment[0].x.toFixed(2)},${bottom}Z" fill="url(#chart-fill)"/><path d="${d}" fill="none" stroke="#8c86c7" stroke-width="2.2" stroke-linejoin="round"/>`;
+    return `<path d="${d} L${segment.at(-1).x.toFixed(2)},${bottom} L${segment[0].x.toFixed(2)},${bottom}Z" fill="url(#chart-fill)"/><path d="${d}" fill="none" stroke="var(--chart-line)" stroke-width="2.2" stroke-linejoin="round"/>`;
   }).join('');
   const last = points.filter(p=>p.valid).at(-1);
-  $('#chart-container').innerHTML = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${series} load over the last ${period} minutes; average ${formatPercent(summary.avg)}"><defs><linearGradient id="chart-fill" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#b7b0e0" stop-opacity=".28"/><stop offset="1" stop-color="#b7b0e0" stop-opacity=".015"/></linearGradient></defs>${[0,50,100].map(n=>`<line x1="${left}" x2="${right}" y1="${bottom-n/100*(bottom-top)}" y2="${bottom-n/100*(bottom-top)}" stroke="#ececf1" stroke-dasharray="3 5"/><text x="22" y="${bottom-n/100*(bottom-top)+3}" text-anchor="end" fill="#a2a3b1" font-size="9">${n}%</text>`).join('')}${lineMarkup}${last ? `<circle cx="${last.x}" cy="${last.y}" r="3.5" fill="#8c86c7" stroke="white" stroke-width="2"/>` : ''}<text x="${left}" y="124" fill="#a2a3b1" font-size="9">${period} min ago</text><text x="${right}" y="124" fill="#a2a3b1" font-size="9" text-anchor="end">Now</text></svg>`;
+  $('#chart-container').innerHTML = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${series} load over the last ${period} minutes; average ${formatPercent(summary.avg)}"><defs><linearGradient id="chart-fill" x1="0" y1="0" x2="0" y2="1"><stop stop-color="var(--chart-fill)" stop-opacity=".28"/><stop offset="1" stop-color="var(--chart-fill)" stop-opacity=".015"/></linearGradient></defs>${[0,50,100].map(n=>`<line x1="${left}" x2="${right}" y1="${bottom-n/100*(bottom-top)}" y2="${bottom-n/100*(bottom-top)}" stroke="var(--chart-grid)" stroke-dasharray="3 5"/><text x="22" y="${bottom-n/100*(bottom-top)+3}" text-anchor="end" fill="var(--chart-label)" font-size="9">${n}%</text>`).join('')}${lineMarkup}${last ? `<circle cx="${last.x}" cy="${last.y}" r="3.5" fill="var(--chart-line)" stroke="var(--theme-surface)" stroke-width="2"/>` : ''}<text x="${left}" y="124" fill="var(--chart-label)" font-size="9">${period} min ago</text><text x="${right}" y="124" fill="var(--chart-label)" font-size="9" text-anchor="end">Now</text></svg>`;
 }
 
 function renderHistory() {
@@ -337,6 +345,7 @@ $('#widget-button').addEventListener('click', toggleExpanded);
 $('#mobile-settings').addEventListener('click', () => setView(view === 'settings' ? 'overview' : 'settings'));
 $('#hide-button').addEventListener('click', () => window.weatherStation?.hide());
 $('#export-history').addEventListener('click', exportHistory);
+$$('[data-theme-option]').forEach(button => button.addEventListener('click', () => savePreferences({theme:button.dataset.themeOption})));
 $('#setting-source').addEventListener('change', event=>savePreferences({source:event.target.value}));
 $('#setting-refresh').addEventListener('change', event=>savePreferences({refreshInterval:Number(event.target.value)}));
 $('#setting-threshold').addEventListener('input', event=>{ $('#threshold-output').value=`${event.target.value}%`; });

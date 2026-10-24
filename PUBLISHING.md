@@ -2,7 +2,7 @@
 
 ## Runtime requirements
 
-Cirrus 1.0.1 targets Windows 10 / 11 x64. Electron bundles Chromium, Node.js and the application code. End users need no additional development runtime, account, API key, server or weather service. Normal observations work offline.
+Cirrus 1.1.0 targets Windows 10 / 11 x64. Electron bundles Chromium, Node.js and the application code. End users need no additional development runtime, account, API key, server or weather service. Normal observations work offline.
 
 | Feature | Source and requirements |
 | --- | --- |
@@ -15,9 +15,9 @@ Cirrus itself installs no drivers, changes no fan settings, and requires no admi
 
 Development requires Node.js 22.12+, npm and network access to download dependencies. Use `npm ci`, `npm test` and `npm run dist` on Windows. If the official Electron distribution is already available locally, `npm run dist -- --config.electronDist=node_modules/electron/dist` can reuse it.
 
-## Commit the English edition
+## Commit the dark themes edition
 
-The repository is [yeze5421/weather-forecast](https://github.com/yeze5421/weather-forecast). Version 1.0.0 is already published; the English edition uses **1.0.1**.
+The repository is [yeze5421/weather-forecast](https://github.com/yeze5421/weather-forecast). Versions 1.0.0 and 1.0.1 are already published; the dark themes edition uses **1.1.0**.
 
 From the project directory:
 
@@ -25,34 +25,34 @@ From the project directory:
 git add -A
 git diff --cached --stat
 git diff --cached --name-only
-git commit -m "Translate Cirrus to English and prepare v1.0.1"
+git commit -m "Add dark themes and prepare v1.1.0"
 git push
 ```
 
-Review the staged files before committing. `git add -A` records the launcher rename as well as file edits. A normal Git push uploads source code; it does not upload the ignored executable or create a Release.
+Review the staged files before committing. `git add -A` records new theme files and the demo GIF as well as file edits. A normal Git push uploads source code; it does not upload the ignored executable or create a Release.
 
 ## Publish the executable
 
-The local build produces `release/Cirrus-Weather-1.0.1.exe` and a matching `release/SHA256.txt`. After pushing the source commit, create a new Release:
+The local build produces `release/Cirrus-Weather-1.1.0.exe` and a matching `release/SHA256.txt`. After pushing the source commit, create a new Release:
 
 ```powershell
-gh release create v1.0.1 "release/Cirrus-Weather-1.0.1.exe" "release/SHA256.txt" --repo yeze5421/weather-forecast --target main --title "Cirrus v1.0.1 - English Edition" --notes-file RELEASE_NOTES.md
+gh release create v1.1.0 "release/Cirrus-Weather-1.1.0.exe" "release/SHA256.txt" --repo yeze5421/weather-forecast --target main --title "Cirrus v1.1.0 - Dark Themes" --notes-file RELEASE_NOTES.md
 ```
 
-GitHub attaches the executable and checksum file, and creates source archives for the tagged commit. Download links will appear at `https://github.com/yeze5421/weather-forecast/releases/tag/v1.0.1`. Keep each published version's executable and checksum together; build a new version instead of replacing an older release's binary.
+GitHub attaches the executable and checksum file, and creates source archives for the tagged commit. Download links will appear at `https://github.com/yeze5421/weather-forecast/releases/tag/v1.1.0`. Keep each published version's executable and checksum together; build a new version instead of replacing an older release's binary.
 
 If rebuilding before publication, refresh the checksum:
 
 ```powershell
-$cirrusHash = (Get-FileHash -LiteralPath "release/Cirrus-Weather-1.0.1.exe" -Algorithm SHA256).Hash.ToLowerInvariant()
-"$cirrusHash  Cirrus-Weather-1.0.1.exe" | Set-Content -LiteralPath "release/SHA256.txt" -Encoding utf8
+$cirrusHash = (Get-FileHash -LiteralPath "release/Cirrus-Weather-1.1.0.exe" -Algorithm SHA256).Hash.ToLowerInvariant()
+"$cirrusHash  Cirrus-Weather-1.1.0.exe" | Set-Content -LiteralPath "release/SHA256.txt" -Encoding utf8
 ```
 
 The executable is currently **unsigned**. Windows may show an unknown publisher or SmartScreen prompt. Configure Windows code signing for a formal distribution if needed; keep certificates, private keys and passwords outside the repository. Signing does not guarantee that every system prompt disappears.
 
 ## Public file scope
 
-Commit first-party source, tests, scripts, `public/favicon.svg`, the two application icons in `build/`, manifests, the lockfile, documentation, `Launch-Cirrus.cmd` and `LICENSE`.
+Commit first-party source, tests, scripts, `public/favicon.svg`, `shared/themes.json`, `docs/cirrus-preview.gif`, the two application icons in `build/`, manifests, the lockfile, documentation, `Launch-Cirrus.cmd` and `LICENSE`.
 
 Release assets should contain only the portable executable and its checksum file. Exclude `node_modules/`, `dist/`, `artifacts/`, `publish/`, the rest of `release/`, browser profiles, exported CSVs, screenshots, logs, `builder-debug.yml`, environment files and signing material.
 

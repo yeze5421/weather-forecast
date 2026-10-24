@@ -1,20 +1,19 @@
-# Cirrus v1.0.1 - English Edition
+# Cirrus v1.1.0 - Dark Themes
 
-Turn computer activity into a little weather. This update brings the entire Cirrus interface and application name into English.
+A Windows tray widget that turns CPU/GPU load into animated weather, high memory use into thunderstorms, and fan speed into wind — entirely offline.
 
-## Changes
+## New in this release
 
-- English overview, history, settings, weather descriptions, preview labels and accessibility text.
-- English system tray menus, tooltips, sensor messages, CSV headers and exported weather labels.
-- Windows application name and folder executable renamed to `Cirrus`; project launcher renamed to `Launch-Cirrus.cmd`.
-- English README, publishing instructions and development messages.
-- Existing valid preferences are imported from the previous app name on first launch when no Cirrus preferences exist.
-- Weather thresholds, local observations, offline operation and separate live / preview history remain available.
+- Four dark themes: Midnight, Obsidian, Forest and Ember, plus the pastel Daylight theme.
+- A visual theme picker in Settings and quick theme switching from the tray menu.
+- Coordinated window, chart, cloud and landscape colors, with readable text contrast.
+- Your theme choice is stored locally and restored after relaunch.
+- A short demo GIF and a direct Windows download link at the top of the README.
 
 ## Download and run
 
-Download `Cirrus-Weather-1.0.1.exe` and double-click it on Windows 10 / 11 x64. Node.js, Python and .NET are not required. `SHA256.txt` provides the executable checksum. GitHub's Source code archives are for developers.
+Quit any running Cirrus instance from the tray first. Download `Cirrus-Weather-1.1.0.exe` and double-click it on Windows 10 / 11 x64. Node.js, Python and .NET are not required. `SHA256.txt` provides the executable checksum.
 
-GPU and fan readings depend on hardware and driver support. Fan RPM requires a running LibreHardwareMonitor / OpenHardwareMonitor WMI provider; missing sensor readings stay unavailable.
+GPU readings depend on driver support. Fan RPM requires a running LibreHardwareMonitor / OpenHardwareMonitor WMI provider; unsupported readings remain unavailable. No accounts, remote APIs or telemetry uploads are used.
 
-The executable is unsigned, so Windows may show an unknown publisher or SmartScreen prompt. First-party code uses MIT License, included in the package; third-party components retain their own licenses.
+The executable is unsigned, so Windows may show an unknown publisher or SmartScreen prompt. MIT License is included in the application; third-party components retain their own licenses.

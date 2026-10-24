@@ -102,6 +102,9 @@ async function launch() {
     await assertEnglishInterface(page, `${weather} preview`);
   }
   await page.locator('#toast').waitFor({ state: 'hidden', timeout: 5000 });
+  const stormSurface = await page.locator('.weather-card').evaluate(element => getComputedStyle(element).backgroundColor);
+  const themeSurface = await page.locator('nav .nav-item.active').evaluate(element => getComputedStyle(element).backgroundColor);
+  assert.equal(stormSurface, themeSurface, 'Thunderstorms must keep the selected theme background');
   await page.screenshot({ path: path.join(artifacts, 'desktop-storm.png') });
   await page.locator('#preview-toggle').click();
   await page.locator('#return-live').click();
@@ -159,6 +162,26 @@ async function launch() {
   await page.locator('nav [data-view="overview"]').click();
   check('English history, settings and preview interfaces');
 
+  const themes = require('../shared/themes.json');
+  assert.equal((await page.evaluate(() => window.weatherStation.getPreferences())).theme, 'midnight');
+  await page.locator('nav [data-view="settings"]').click();
+  for (const theme of themes) {
+    await page.locator(`[data-theme-option="${theme.id}"]`).click();
+    await page.waitForFunction(id => document.documentElement.dataset.theme === id, theme.id);
+    assert.equal((await page.evaluate(() => window.weatherStation.getPreferences())).theme, theme.id);
+    assert.equal(await page.locator(`[data-theme-option="${theme.id}"]`).getAttribute('aria-pressed'), 'true');
+    assert.equal(await desktop.evaluate(({ nativeTheme }) => nativeTheme.shouldUseDarkColors), theme.dark);
+    const colors = await page.evaluate(() => ({ background: getComputedStyle(document.body).backgroundColor, text: getComputedStyle(document.body).color }));
+    assert.notEqual(colors.background, colors.text);
+    await page.screenshot({ path: path.join(artifacts, `theme-${theme.id}.png`), fullPage: true });
+  }
+  const invalidThemeRejected = await page.evaluate(async () => {
+    try { await window.weatherStation.savePreferences({ theme: '../../invalid' }); return false; } catch { return true; }
+  });
+  assert(invalidThemeRejected);
+  await page.locator('nav [data-view="overview"]').click();
+  check('all five themes switch through settings, update native colors and reject invalid IDs');
+
   assert.equal(await desktop.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].isAlwaysOnTop()), true);
   await page.evaluate(() => window.weatherStation.hide());
   assert.equal(await desktop.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].isVisible()), false);
@@ -193,7 +216,7 @@ async function launch() {
   assert.equal(loginCalls[1].openAtLogin, false);
   assert.deepEqual(loginCalls[0].args, packagedExecutable ? ['--hidden'] : [root, '--hidden']);
   check('startup toggle targets are configured without modifying host startup');
-  await page.evaluate(() => window.weatherStation.savePreferences({ reducedMotion: true, stormThreshold: 92, source: 'gpu' }));
+  await page.evaluate(() => window.weatherStation.savePreferences({ reducedMotion: true, stormThreshold: 92, source: 'gpu', theme: 'forest' }));
   await desktop.close();
   desktop = null;
   page = await launch();
@@ -203,9 +226,11 @@ async function launch() {
   assert.equal(restored.stormThreshold, 92);
   assert.equal(restored.reducedMotion, true);
   assert.equal(restored.launchAtLogin, false);
+  assert.equal(restored.theme, 'forest');
+  assert.equal(await page.evaluate(() => document.documentElement.dataset.theme), 'forest');
   check('preferences persist across process relaunch');
   assert.deepEqual(pageErrors, []);
-  await page.evaluate(() => window.weatherStation.savePreferences({ source: 'cpu', launchAtLogin: false, pinned: false, reducedMotion: false, refreshInterval: 2000, stormThreshold: 90 }));
+  await page.evaluate(() => window.weatherStation.savePreferences({ source: 'cpu', launchAtLogin: false, pinned: false, reducedMotion: false, refreshInterval: 2000, stormThreshold: 90, theme: 'midnight' }));
   const result = { passed: checks.length, checks, snapshot, webPreferences, compactLayout, expandedLayout, layoutIssues, screenshots: ['desktop-compact.png', 'desktop-storm.png', 'desktop-expanded.png'], timestamp: new Date().toISOString() };
   fs.writeFileSync(path.join(artifacts, 'desktop-smoke-results.json'), JSON.stringify(result, null, 2));
   console.log(JSON.stringify({ passed: result.passed, checks, compactLayout, expandedLayout, layoutIssues, screenshots: result.screenshots }, null, 2));

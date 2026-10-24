@@ -1,18 +1,28 @@
 # Cirrus · Desktop Weather
 
-Turn computer activity into a little weather. Cirrus is a local Windows system tray widget with an animated landscape and a full observation view.
+**A Windows tray widget that turns CPU/GPU load into animated weather, high memory use into thunderstorms, and fan speed into wind — entirely offline.**
+
+**[Download for Windows — portable .exe](https://github.com/yeze5421/weather-forecast/releases/download/v1.1.0/Cirrus-Weather-1.1.0.exe)** · [SHA-256](https://github.com/yeze5421/weather-forecast/releases/download/v1.1.0/SHA256.txt) · [Release notes](https://github.com/yeze5421/weather-forecast/releases/tag/v1.1.0)
+
+Windows 10 / 11 · x64 · No installation or account required · MIT License
+
+![Cirrus switching between dark themes and animated weather](docs/cirrus-preview.gif)
+
+*A short recording of the actual app, using clearly labeled demo readings.*
 
 ## Run
 
 **[Download the latest release](https://github.com/yeze5421/weather-forecast/releases/latest)** for Windows 10 / 11 x64. Download the `.exe` attachment and double-click it. Node.js, Python, .NET, accounts, API keys and servers are not required.
 
-This checkout is **1.0.1**, the English edition. Its local portable build is `release/Cirrus-Weather-1.0.1.exe`; `Launch-Cirrus.cmd` opens the most recently built portable executable. GitHub's automatic Source code archives contain source files and require the development setup below.
+This checkout is **1.1.0**, the dark themes edition. Its local portable build is `release/Cirrus-Weather-1.1.0.exe`; `Launch-Cirrus.cmd` opens the most recently built portable executable. GitHub's automatic Source code archives contain source files and require the development setup below.
 
 - Left-click the tray weather icon to open or hide the widget.
 - Right-click to select CPU / GPU weather, toggle Always on top, or Quit Cirrus.
 - Use the expand button to switch between the widget and full station view.
 - Closing the window hides it to the tray. Use Quit Cirrus to exit completely.
 - Windows may place the tray icon under Show hidden icons.
+
+When updating, choose Quit Cirrus from the tray before launching the new executable.
 
 The current executable is unsigned. Windows may show an unknown publisher or SmartScreen prompt.
 
@@ -38,6 +48,10 @@ Fan RPM controls the windmill and wind animation. Missing RPM readings leave the
 - Preferences and readings stay on this computer. There is no account, remote API, telemetry upload or automatic update service in the application code.
 - History retains the last 30 minutes of the current session and clears on exit. CSV export is an explicit user action. Preview and live records are kept separately.
 
+## Make it yours
+
+Choose **Midnight**, **Obsidian**, **Forest**, **Ember** or **Daylight** in Settings → Appearance, or from the tray menu. Each theme colors the whole interface, charts, clouds and landscape. Your choice is saved locally and restored on the next launch. Midnight is the default.
+
 ## Preview
 
 Open Preview to try sunny, cloudy, rainy and stormy skies without changing actual computer load. The interface labels demo readings as Preview. Back to live readings returns to real data. Browser mode supports previews; live hardware readings require the desktop app.
@@ -51,7 +65,7 @@ npm ci
 npm run desktop:dev   # Electron + Vite with live reload
 npm start             # Build and launch the desktop app
 npm run dev           # Browser preview at http://127.0.0.1:5186
-npm test              # Weather rules and preference migration tests
+npm test              # Weather rules, preferences and theme contrast
 npm run test:desktop  # Desktop integration checks with an isolated profile
 npm run pack          # Folder build at release/win-unpacked/Cirrus.exe
 npm run dist          # Portable Windows executable
@@ -61,6 +75,8 @@ Dependency installation downloads the official Electron runtime. Proxy environme
 
 ```text
 electron/             Desktop bridge, tray, settings and hardware sampling
+shared/themes.json    Theme presets shared by the native app and renderer
+docs/                 Demo GIF for the README
 src/main.js           Interface, preferences, previews, history and CSV export
 src/weather-model.js  Weather rules and numeric formatting
 src/weather-scene.*   Original SVG landscape and animation
@@ -73,7 +89,7 @@ Preferences live in `preferences.json` under the current user's Cirrus applicati
 
 ## Update GitHub
 
-Updating the repository and publishing a new executable are separate operations. Git ignores `release/`, so a normal push updates source files only. See [PUBLISHING.md](PUBLISHING.md) for the exact commands to commit 1.0.1 and create its Release, and [RELEASE_NOTES.md](RELEASE_NOTES.md) for the current release notes.
+Updating the repository and publishing a new executable are separate operations. Git ignores `release/`, so a normal push updates source files only. See [PUBLISHING.md](PUBLISHING.md) for the exact commands to commit 1.1.0 and create its Release, and [RELEASE_NOTES.md](RELEASE_NOTES.md) for the current release notes.
 
 Local `artifacts/` contains hardware test readings, screenshots and browser profiles. Build diagnostics in `release/` may include local paths. These directories are excluded from Git and must not be uploaded as a whole.
 

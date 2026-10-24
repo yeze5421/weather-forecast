@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, Tray, ipcMain, nativeImage, screen, session } = require('electron');
+const { app, BrowserWindow, Menu, Tray, ipcMain, nativeImage, nativeTheme, screen, session } = require('electron');
 const fs = require('node:fs');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
@@ -6,13 +6,15 @@ const { MetricsSampler } = require('./metrics.cjs');
 const { makeTrayIcon } = require('./tray-icon.cjs');
 const { loginItemTarget } = require('./login-item.cjs');
 const { loadPreferences } = require('./preferences.cjs');
+const themes = require('../shared/themes.json');
+const themeIds = new Set(themes.map(theme => theme.id));
 
 app.setName('Cirrus');
 if (process.env.WEATHER_STATION_USER_DATA) app.setPath('userData', path.resolve(process.env.WEATHER_STATION_USER_DATA));
 
 const defaults = Object.freeze({
   source: 'cpu', launchAtLogin: false, pinned: false, reducedMotion: false,
-  refreshInterval: 2000, stormThreshold: 90,
+  refreshInterval: 2000, stormThreshold: 90, theme: 'midnight',
 });
 let preferences = { ...defaults };
 let window = null;
@@ -26,6 +28,10 @@ let settingsPath;
 function normalizePreferences(patch, base = preferences) {
   if (!patch || typeof patch !== 'object' || Array.isArray(patch)) throw new TypeError('Invalid preferences');
   const next = { ...base };
+  if ('theme' in patch) {
+    if (typeof patch.theme !== 'string' || !themeIds.has(patch.theme)) throw new TypeError('Unknown color theme');
+    next.theme = patch.theme;
+  }
   if ('source' in patch) {
     if (!['cpu', 'gpu'].includes(patch.source)) throw new TypeError('Unknown weather source');
     next.source = patch.source;
@@ -63,6 +69,7 @@ function savePreferences(patch) {
     });
   }
   preferences = next;
+  applyNativeTheme();
   sampler?.setInterval(next.refreshInterval);
   window?.setAlwaysOnTop(next.pinned);
   window?.webContents.send('weather:preferences-changed', { ...next });
@@ -104,6 +111,12 @@ function showWindow(nearTray = true) {
   window.focus();
 }
 
+function applyNativeTheme() {
+  const theme = themes.find(theme => theme.id === preferences.theme) || themes[0];
+  nativeTheme.themeSource = theme.dark ? 'dark' : 'light';
+  window?.setBackgroundColor(theme.colors.bg);
+}
+
 function refreshTrayMenu() {
   if (!tray) return;
   tray.setContextMenu(Menu.buildFromTemplate([
@@ -113,6 +126,7 @@ function refreshTrayMenu() {
     { label: 'Weather follows GPU', type: 'radio', checked: preferences.source === 'gpu', click: () => savePreferences({ source: 'gpu' }) },
     { type: 'separator' },
     { label: 'Always on top', type: 'checkbox', checked: preferences.pinned, click: item => savePreferences({ pinned: item.checked }) },
+    { label: 'Appearance', submenu: themes.map(theme => ({ label: theme.name, type: 'radio', checked: preferences.theme === theme.id, click: () => savePreferences({ theme: theme.id }) })) },
     { label: 'Quit Cirrus', click: () => app.quit() },
   ]));
 }
@@ -165,7 +179,7 @@ function createWindow() {
   window = new BrowserWindow({
     ...size, show: false, frame: false, resizable: false,
     maximizable: false, fullscreenable: false, skipTaskbar: true,
-    title: 'Cirrus', backgroundColor: '#f6f8fc',
+    title: 'Cirrus', backgroundColor: (themes.find(theme => theme.id === preferences.theme) || themes[0]).colors.bg,
     icon: makeTrayIcon(nativeImage, 'sunny'),
     alwaysOnTop: preferences.pinned,
     webPreferences: {
@@ -211,6 +225,7 @@ if (!app.requestSingleInstanceLock()) {
       legacySettingsPath: process.env.WEATHER_STATION_USER_DATA ? null : path.join(app.getPath('appData'), legacyAppName, 'preferences.json'),
     });
     preferences = loaded.preferences;
+    applyNativeTheme();
     if (loaded.migrated && preferences.launchAtLogin) {
       try {
         app.setLoginItemSettings({
