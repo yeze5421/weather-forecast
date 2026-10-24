@@ -1,0 +1,47 @@
+{
+  "name": "cirrus-weather-station",
+  "version": "1.0.0",
+  "description": "机内气象 · 把电脑状态变成一片天气",
+  "author": "Cirrus",
+  "private": true,
+  "type": "module",
+  "main": "electron/main.cjs",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "desktop:dev": "node scripts/dev.cjs",
+    "build": "vite build",
+    "start": "npm run build && electron .",
+    "test": "node --test tests/*.test.js",
+    "test:desktop": "npm run build && node scripts/smoke-desktop.cjs",
+    "pack": "npm run build && electron-builder --win --dir",
+    "dist": "npm run build && electron-builder --win portable"
+  },
+  "devDependencies": {
+    "electron": "45.0.0",
+    "electron-builder": "26.15.3",
+    "playwright": "1.64.1",
+    "vite": "8.3.5"
+  },
+  "build": {
+    "appId": "com.cirrus.weatherstation",
+    "productName": "机内气象",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "asar": true,
+    "asarUnpack": ["electron/sensors.ps1"],
+    "win": {
+      "target": "portable",
+      "icon": "build/icon.ico",
+      "signAndEditExecutable": true
+    },
+    "portable": {
+      "artifactName": "Cirrus-Weather-${version}.exe"
+    }
+  }
+}
