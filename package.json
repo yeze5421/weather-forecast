@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "机内气象 · 把电脑状态变成一片天气",
   "author": "Cirrus",
+  "license": "MIT",
   "private": true,
   "type": "module",
   "main": "electron/main.cjs",
@@ -31,7 +32,8 @@
     "files": [
       "dist/**/*",
       "electron/**/*",
-      "package.json"
+      "package.json",
+      "LICENSE"
     ],
     "asar": true,
     "asarUnpack": ["electron/sensors.ps1"],

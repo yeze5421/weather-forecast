@@ -17,13 +17,13 @@
 
 ## GitHub 怎么放
 
-1. 仓库放源文件：`src/`、`electron/`、`public/`、`build/` 中的应用图标、`scripts/`、`tests/`、依赖清单及锁文件、说明文档和配置。可以从经过白名单整理的源码压缩包开始创建仓库。
+1. 仓库放源文件：`src/`、`electron/`、`public/`、`build/` 中的应用图标、`scripts/`、`tests/`、依赖清单及锁文件、`LICENSE`、说明文档和配置。可以从经过白名单整理的源码压缩包开始创建仓库。
 2. 创建一个 GitHub Release，把 `Cirrus-Weather-1.0.0.exe` 和 `SHA256.txt` 作为附件上传。普通用户下载 exe 后运行；GitHub 自动生成的 Source code 压缩包供开发者使用。
 3. 不上传整个本地工作目录，不上传 `node_modules/`、`artifacts/`、`publish/` 或整个 `release/`。尤其不上传测试用户配置目录、CSV、测试截图、构建日志、`builder-debug.yml`、环境变量文件和签名私钥。
-4. 正式公开前选择项目许可证。当前未指定开源许可证；源码可见不等同于已经授予修改和再分发许可。应用包内保留了 Electron / Chromium 的第三方许可说明。
+4. 本项目已选择 **MIT License**，版权署名使用公开 GitHub 用户名 `yeze5421`，不包含私人邮箱或真实姓名。分发第一方代码时须保留根目录的 `LICENSE`；便携程序也包含该文件。应用包内保留了 Electron / Chromium 的第三方许可说明。
 5. 当前 exe **没有数字签名**，Windows 可能显示未知发布者或 SmartScreen 提示。正式分发可配置 Windows 代码签名；证书、私钥和密码保存在受保护的本机环境或 CI Secrets 中，不能写入仓库。签名需要另行配置，并不保证消除所有系统提示。
 
-仓库尚未在本次整理中创建或上传。如果以后用 Git 提交，提交者姓名和邮箱会进入 Git 历史；公开前应检查 Git 身份设置，按需要使用 GitHub 提供的 noreply 邮箱。`package.json` 的 `private: true` 只防止误发布到 npm，不决定 GitHub 仓库是否公开。
+仓库位于 [yeze5421/weather-forecast](https://github.com/yeze5421/weather-forecast)，v1.0.0 发布页为 [GitHub Release](https://github.com/yeze5421/weather-forecast/releases/tag/v1.0.0)。Git 提交的姓名和邮箱会进入历史，本次提交身份使用 GitHub noreply 邮箱。`package.json` 的 `private: true` 只防止误发布到 npm，不决定 GitHub 仓库是否公开。
 
 ## 本次检查结果（2026-10-24）
 

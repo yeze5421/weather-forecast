@@ -6,6 +6,8 @@
 
 当前便携版面向 **Windows 10 / 11 x64**。双击 `release/Cirrus-Weather-1.0.0.exe`，无需安装 Node.js、Python 或 .NET，也不需要账号、API Key 或服务器。
 
+**下载程序：[Cirrus-Weather-1.0.0.exe](https://github.com/yeze5421/weather-forecast/releases/download/v1.0.0/Cirrus-Weather-1.0.0.exe)** · [发布说明与校验文件](https://github.com/yeze5421/weather-forecast/releases/tag/v1.0.0)
+
 GitHub 发布时，普通用户应下载 **Releases 中的 `.exe`**；GitHub 自动提供的「Source code」压缩包只有源码，需要按下文安装开发环境并构建。当前程序尚未进行数字签名，Windows 可能显示未知发布者或 SmartScreen 提示。
 
 - 左键点击系统托盘里的天气图标：打开或收起小组件。
@@ -78,3 +80,7 @@ scripts/              开发启动与桌面集成测试
 ## 发布与隐私
 
 发布文件范围、隐私检查结果及 GitHub 发布步骤见 [PUBLISHING.md](PUBLISHING.md)。本地 `artifacts/` 包含测试读数、硬件信息和浏览器测试缓存，`release/` 还包含构建诊断文件；请勿直接打包上传整个工作目录。`.gitignore` 只保护遵循 Git 忽略规则的操作，不会清理手工压缩包或已经提交的历史。
+
+## 许可证
+
+本项目使用 [MIT License](LICENSE)。允许使用、修改、分发和商用，分发时须保留版权与许可声明。Electron、Chromium 等第三方组件遵循各自许可证，其许可说明保留在应用包中。
