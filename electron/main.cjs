@@ -5,8 +5,9 @@ const { pathToFileURL } = require('node:url');
 const { MetricsSampler } = require('./metrics.cjs');
 const { makeTrayIcon } = require('./tray-icon.cjs');
 const { loginItemTarget } = require('./login-item.cjs');
+const { loadPreferences } = require('./preferences.cjs');
 
-app.setName('机内气象');
+app.setName('Cirrus');
 if (process.env.WEATHER_STATION_USER_DATA) app.setPath('userData', path.resolve(process.env.WEATHER_STATION_USER_DATA));
 
 const defaults = Object.freeze({
@@ -106,13 +107,13 @@ function showWindow(nearTray = true) {
 function refreshTrayMenu() {
   if (!tray) return;
   tray.setContextMenu(Menu.buildFromTemplate([
-    { label: '打开机内气象', click: () => showWindow() },
+    { label: 'Open Cirrus', click: () => showWindow() },
     { type: 'separator' },
-    { label: '天气跟随 CPU', type: 'radio', checked: preferences.source === 'cpu', click: () => savePreferences({ source: 'cpu' }) },
-    { label: '天气跟随 GPU', type: 'radio', checked: preferences.source === 'gpu', click: () => savePreferences({ source: 'gpu' }) },
+    { label: 'Weather follows CPU', type: 'radio', checked: preferences.source === 'cpu', click: () => savePreferences({ source: 'cpu' }) },
+    { label: 'Weather follows GPU', type: 'radio', checked: preferences.source === 'gpu', click: () => savePreferences({ source: 'gpu' }) },
     { type: 'separator' },
-    { label: '窗口置顶', type: 'checkbox', checked: preferences.pinned, click: item => savePreferences({ pinned: item.checked }) },
-    { label: '退出机内气象', click: () => app.quit() },
+    { label: 'Always on top', type: 'checkbox', checked: preferences.pinned, click: item => savePreferences({ pinned: item.checked }) },
+    { label: 'Quit Cirrus', click: () => app.quit() },
   ]));
 }
 
@@ -126,8 +127,8 @@ function updateTray(snapshot) {
     tray.setImage(makeTrayIcon(nativeImage, weather));
     lastWeather = weather;
   }
-  const names = { sunny: '晴天', cloudy: usage == null ? '等待传感器' : '多云', rain: '暴雨', storm: '雷暴' };
-  tray.setToolTip(`机内气象 · ${names[weather]}\n${preferences.source.toUpperCase()} ${usage == null ? '不可用' : `${Math.round(usage)}%`} · 内存 ${Math.round(snapshot.memory.usage)}%`);
+  const names = { sunny: 'Sunny', cloudy: usage == null ? 'Awaiting sensor' : 'Cloudy', rain: 'Heavy rain', storm: 'Storm' };
+  tray.setToolTip(`Cirrus · ${names[weather]}\n${preferences.source.toUpperCase()} ${usage == null ? 'Unavailable' : `${Math.round(usage)}%`} · Memory ${Math.round(snapshot.memory.usage)}%`);
 }
 
 function validateSender(event) {
@@ -164,7 +165,7 @@ function createWindow() {
   window = new BrowserWindow({
     ...size, show: false, frame: false, resizable: false,
     maximizable: false, fullscreenable: false, skipTaskbar: true,
-    title: '机内气象', backgroundColor: '#f6f8fc',
+    title: 'Cirrus', backgroundColor: '#f6f8fc',
     icon: makeTrayIcon(nativeImage, 'sunny'),
     alwaysOnTop: preferences.pinned,
     webPreferences: {
@@ -203,11 +204,28 @@ if (!app.requestSingleInstanceLock()) {
   app.whenReady().then(() => {
     app.setAppUserModelId('local.cirrus.weatherstation');
     settingsPath = path.join(app.getPath('userData'), 'preferences.json');
-    try { preferences = normalizePreferences(JSON.parse(fs.readFileSync(settingsPath, 'utf8')), defaults); } catch { preferences = { ...defaults }; }
+    // v1.0.0 used a localized product name. Keep its spelling out of the English UI.
+    const legacyAppName = '\u673a\u5185\u6c14\u8c61';
+    const loaded = loadPreferences({
+      settingsPath, defaults, normalize: normalizePreferences,
+      legacySettingsPath: process.env.WEATHER_STATION_USER_DATA ? null : path.join(app.getPath('appData'), legacyAppName, 'preferences.json'),
+    });
+    preferences = loaded.preferences;
+    if (loaded.migrated && preferences.launchAtLogin) {
+      try {
+        app.setLoginItemSettings({
+          openAtLogin: true,
+          ...loginItemTarget({
+            packaged: app.isPackaged, executable: process.execPath, appPath: app.getAppPath(),
+            portableExecutable: process.env.PORTABLE_EXECUTABLE_FILE,
+          }),
+        });
+      } catch { console.warn('Could not refresh the login item after the app rename.'); }
+    }
     session.defaultSession.setPermissionRequestHandler((_webContents, _permission, callback) => callback(false));
     session.defaultSession.setPermissionCheckHandler(() => false);
     tray = new Tray(makeTrayIcon(nativeImage));
-    tray.setToolTip('机内气象 · 正在观测');
+    tray.setToolTip('Cirrus · Observing');
     tray.on('click', () => window?.isVisible() ? window.hide() : showWindow());
     refreshTrayMenu();
     sampler = new MetricsSampler(preferences.refreshInterval).start();

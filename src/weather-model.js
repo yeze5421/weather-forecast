@@ -1,33 +1,33 @@
 /** Weather is a reading of the present machine, never a prediction. */
 export const WEATHER_STATES = Object.freeze({
   sunny: Object.freeze({
-    label: '晴空万里',
-    description: '运行轻盈，灵感正好。',
-    advice: '电脑很从容，放心开始下一件事。',
+    label: 'Clear skies',
+    description: 'Running light. Room to create.',
+    advice: 'Plenty of room for whatever comes next.',
     color: '#e9a747',
   }),
   cloudy: Object.freeze({
-    label: '云朵来访',
-    description: '有一点忙，也有余裕。',
-    advice: '负载适中，云朵正在缓缓经过。',
+    label: 'Clouds passing',
+    description: 'A little busy. Still room to breathe.',
+    advice: 'A steady load, with a few clouds passing by.',
     color: '#8396b6',
   }),
   rainy: Object.freeze({
-    label: '大雨倾盆',
-    description: '算力全开，一场及时雨。',
-    advice: '负载较高，给正在进行的任务一点时间。',
+    label: 'Heavy rain',
+    description: 'Full speed ahead. Let it rain.',
+    advice: 'Load is high. Give your current tasks a little time.',
     color: '#6487ca',
   }),
   storm: Object.freeze({
-    label: '雷暴预警',
-    description: '内存承压，天空有点拥挤。',
-    advice: '内存接近用满，可以关闭暂时不用的应用。',
+    label: 'Thunderstorm',
+    description: 'Memory is filling up. The sky feels crowded.',
+    advice: 'Memory is nearly full. Close apps you are not using.',
     color: '#9c82d7',
   }),
   unknown: Object.freeze({
-    label: '等待观测',
-    description: '暂时没有这片天空的数据。',
-    advice: '传感器尚未提供读数，可以切换观测来源。',
+    label: 'Awaiting data',
+    description: 'No readings from this part of the sky yet.',
+    advice: 'This sensor has no readings yet. Try another source.',
     color: '#9aa5b5',
   }),
 });
@@ -82,10 +82,10 @@ export function createDemoSnapshot(weatherId = 'sunny', source = 'cpu', timestam
   const totalGB = 32;
   return {
     timestamp: typeof timestamp === 'number' && Number.isFinite(timestamp) ? timestamp : Date.now(),
-    cpu: { usage: selected === 'cpu' ? reading.load : Math.round(reading.load * 0.6), name: '演示 CPU · 8 核' },
-    gpu: { usage: selected === 'gpu' ? reading.load : Math.round(reading.load * 0.35), name: '演示 GPU', temperature: reading.temperature },
+    cpu: { usage: selected === 'cpu' ? reading.load : Math.round(reading.load * 0.6), name: 'Demo CPU · 8 cores' },
+    gpu: { usage: selected === 'gpu' ? reading.load : Math.round(reading.load * 0.35), name: 'Demo GPU', temperature: reading.temperature },
     memory: { usage: reading.memory, usedGB: Number((totalGB * reading.memory / 100).toFixed(1)), totalGB },
-    fan: { rpm: reading.fan, source: '演示传感器' },
+    fan: { rpm: reading.fan, source: 'Demo sensor' },
     uptime: 15360,
   };
 }

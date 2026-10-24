@@ -65,7 +65,7 @@ test('all four demo weather states derive correctly for either selected source',
       assert.equal(deriveWeather(sample, source).id, id);
       assert.equal(sample.timestamp, 123456);
       assert.ok(Math.abs(sample.memory.usedGB / sample.memory.totalGB * 100 - sample.memory.usage) < 0.2);
-      assert.match(sample.fan.source, /演示/);
+      assert.match(sample.fan.source, /Demo/);
       assert.deepEqual(sample, createDemoSnapshot(id, source, 123456));
     }
   }

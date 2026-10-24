@@ -20,3 +20,6 @@ body.widget-preview{max-width:432px;margin:26px auto;border:1px solid #e8e4ef;bo
 .weather-scene{mask-image:linear-gradient(to bottom,transparent,#000 22%)}
 @container app (max-width:620px){main{padding-top:20px}.chart-container{height:80px}.page-footer{padding-top:14px;padding-bottom:16px}}
 @media(max-height:900px){@container app (min-width:901px){main{padding-top:22px}.page-heading{margin-bottom:20px}.weather-card{height:245px}.weather-scene{inset:40px 0 0}.weather-summary{padding-top:17px}.weather-summary h2{font-size:28px}.weather-summary p{margin-top:5px}.metric-card{padding-top:14px;padding-bottom:12px}.metric-value{margin-top:9px}.metric-value strong{font-size:25px}.metrics-grid{margin:13px 0}.trend-card{padding-top:16px;padding-bottom:12px}.chart-container{height:94px;margin-top:12px}.page-footer{padding:18px 0}.interpretation-card .insight-divider,.interpretation-card .insight-row,.interpretation-card .insight-foot{display:none}.interpretation-card{padding-top:20px;padding-bottom:20px}.interpretation-card .mood-label{margin-top:18px}.legend-row{margin:14px 0}.widget-promo{min-height:100px}.secondary-column{gap:15px}}}
+
+/* Leave room for the English footer at the desktop window height. */
+@media(max-height:900px){@container app (min-width:901px){.page-footer{padding-bottom:12px}}}

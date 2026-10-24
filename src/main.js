@@ -1,4 +1,5 @@
 import './style.css';
+import { version } from '../package.json';
 import { deriveWeather, createDemoSnapshot, formatPercent, summarizeHistory } from './weather-model.js';
 import { weatherSceneMarkup, updateWeatherScene } from './weather-scene.js';
 
@@ -50,62 +51,62 @@ const app = $('#app');
 app.innerHTML = `
   <div class="app-shell">
     <aside class="sidebar">
-      <a class="brand" href="#" aria-label="机内气象首页"><span class="brand-mark">${icon('sun')}</span><span><strong>机内气象</strong><small>C I R R U S</small></span></a>
-      <div class="sidebar-label">你的私人气象站</div>
-      <nav class="navigation" aria-label="主导航">
-        <button class="nav-item active" data-view="overview">${icon('sun')}<span>实况天气</span><span class="nav-indicator"></span></button>
-        <button class="nav-item" data-view="history">${icon('chart')}<span>观测记录</span></button>
-        <button class="nav-item" data-view="settings">${icon('settings')}<span>气象站设置</span></button>
+      <a class="brand" href="#" aria-label="Cirrus home"><span class="brand-mark">${icon('sun')}</span><span><strong>Cirrus</strong><small>DESKTOP WEATHER</small></span></a>
+      <div class="sidebar-label">YOUR LITTLE SKY</div>
+      <nav class="navigation" aria-label="Main navigation">
+        <button class="nav-item active" data-view="overview">${icon('sun')}<span>Overview</span><span class="nav-indicator"></span></button>
+        <button class="nav-item" data-view="history">${icon('chart')}<span>History</span></button>
+        <button class="nav-item" data-view="settings">${icon('settings')}<span>Settings</span></button>
       </nav>
-      <div class="sidebar-note"><div class="tiny-landscape"><span class="tiny-sun"></span><span class="tiny-hill h1"></span><span class="tiny-hill h2"></span></div><p>每一台电脑，<br>都有自己的天气。</p><span>A LITTLE SKY, JUST FOR YOU.</span></div>
-      <div class="sidebar-footer"><span class="local-dot"></span> 在本机，安心观测 <span>1.0</span></div>
+      <div class="sidebar-note"><div class="tiny-landscape"><span class="tiny-sun"></span><span class="tiny-hill h1"></span><span class="tiny-hill h2"></span></div><p>Every computer.<br>A sky of its own.</p><span>A LITTLE SKY, JUST FOR YOU.</span></div>
+      <div class="sidebar-footer"><span class="local-dot"></span> Local readings <span>${version}</span></div>
     </aside>
 
     <div class="workspace">
       <header class="topbar">
-        <div class="breadcrumb"><span class="compact-brand">${icon('sun')} 机内气象</span><span class="wide-crumb">我的气象站 <span>/</span> <b id="breadcrumb-title">实况天气</b></span></div>
+        <div class="breadcrumb"><span class="compact-brand">${icon('sun')} Cirrus</span><span class="wide-crumb">My station <span>/</span> <b id="breadcrumb-title">Overview</b></span></div>
         <div class="window-actions">
-          <div class="preview-anchor"><button id="preview-toggle" class="preview-button" aria-expanded="false" aria-controls="preview-popover">${icon('play')}<span>天气预览</span></button>
-            <div id="preview-popover" class="popover" hidden><div class="popover-heading">让天气变一变 <span>演示数据</span></div><div class="preview-options">${[['sunny','晴天','sun'],['cloudy','多云','cloud'],['rainy','暴雨','rain'],['storm','雷暴','storm']].map(([id,label,i])=>`<button data-demo="${id}" aria-pressed="false">${icon(i)}<span>${label}</span></button>`).join('')}</div><p>预览不会改变电脑的实际负载。</p>${desktop ? '<button id="return-live" class="return-live">返回实时观测 →</button>' : '<div class="browser-note">浏览器正在展示预览，桌面版可读取真实数据。</div>'}</div>
+          <div class="preview-anchor"><button id="preview-toggle" class="preview-button" aria-expanded="false" aria-controls="preview-popover">${icon('play')}<span>Preview</span></button>
+            <div id="preview-popover" class="popover" hidden><div class="popover-heading">Change the weather <span>Demo data</span></div><div class="preview-options">${[['sunny','Sunny','sun'],['cloudy','Cloudy','cloud'],['rainy','Heavy rain','rain'],['storm','Storm','storm']].map(([id,label,i])=>`<button data-demo="${id}" aria-pressed="false">${icon(i)}<span>${label}</span></button>`).join('')}</div><p>Preview leaves your actual computer load unchanged.</p>${desktop ? '<button id="return-live" class="return-live">Back to live readings →</button>' : '<div class="browser-note">Browser preview. Use the desktop app for live readings.</div>'}</div>
           </div>
           <span class="toolbar-divider"></span>
-          <button id="pin-button" class="icon-button desktop-action" title="窗口置顶" aria-label="窗口置顶" aria-pressed="false">${icon('pin')}</button>
-          <button id="expand-button" class="icon-button" title="切换小组件 / 完整视图" aria-label="切换小组件 / 完整视图">${icon('expand')}</button>
-          <button id="mobile-settings" class="icon-button mobile-only" title="气象站设置" aria-label="气象站设置">${icon('settings')}</button>
-          <button id="hide-button" class="icon-button desktop-action" title="收起到系统托盘" aria-label="收起到系统托盘">${icon('close')}</button>
+          <button id="pin-button" class="icon-button desktop-action" title="Always on top" aria-label="Always on top" aria-pressed="false">${icon('pin')}</button>
+          <button id="expand-button" class="icon-button" title="Toggle widget / full view" aria-label="Toggle widget / full view">${icon('expand')}</button>
+          <button id="mobile-settings" class="icon-button mobile-only" title="Settings" aria-label="Settings">${icon('settings')}</button>
+          <button id="hide-button" class="icon-button desktop-action" title="Hide to system tray" aria-label="Hide to system tray">${icon('close')}</button>
         </div>
       </header>
 
       <main>
         <section id="overview-view" class="view">
-          <div class="page-heading"><div><div class="eyebrow">YOUR COMPUTER, A LITTLE WEATHER.</div><h1>电脑里的小气候<span class="heading-dot">.</span></h1><p>忙碌或闲暇，抬头看看就知道。</p></div><div class="connection-badge"><span></span><b id="connection-label">正在连接</b></div></div>
+          <div class="page-heading"><div><div class="eyebrow">YOUR COMPUTER, A LITTLE WEATHER.</div><h1>Your desktop weather<span class="heading-dot">.</span></h1><p>A little sky for everything your computer does.</p></div><div class="connection-badge"><span></span><b id="connection-label">Connecting</b></div></div>
           <div class="dashboard-grid">
             <div class="primary-column">
-              <section class="weather-card" data-weather="sunny" aria-label="当前电脑天气">
-                <div class="weather-card-top"><span class="observation-label">${icon('monitor')} <span id="station-label">本机 · 实况观测</span></span><div class="source-toggle" aria-label="天气依据"><button data-source="cpu" aria-pressed="true">CPU</button><button data-source="gpu" aria-pressed="false">GPU</button></div></div>
-                <div class="weather-summary"><div><div class="weather-kicker" id="weather-kicker">此刻的天气</div><h2 id="weather-title">等待观测</h2><p id="weather-description">正在看看你的电脑里，是什么天气。</p></div><div class="hero-load"><strong id="hero-load">—</strong><span><b id="hero-source">CPU</b> 使用率</span></div></div>
+              <section class="weather-card" data-weather="sunny" aria-label="Current desktop weather">
+                <div class="weather-card-top"><span class="observation-label">${icon('monitor')} <span id="station-label">Local · Live readings</span></span><div class="source-toggle" aria-label="Weather source"><button data-source="cpu" aria-pressed="true">CPU</button><button data-source="gpu" aria-pressed="false">GPU</button></div></div>
+                <div class="weather-summary"><div><div class="weather-kicker" id="weather-kicker">WEATHER RIGHT NOW</div><h2 id="weather-title">Awaiting data</h2><p id="weather-description">Finding the weather inside your computer.</p></div><div class="hero-load"><strong id="hero-load">—</strong><span><b id="hero-source">CPU</b> usage</span></div></div>
                 <div class="weather-scene" aria-hidden="true">${weatherSceneMarkup()}</div>
-                <div class="weather-card-bottom"><span id="weather-advice">留一点空闲，给好天气。</span><span class="weather-state-icon" id="weather-state-icon">${icon('sun')}</span></div>
+                <div class="weather-card-bottom"><span id="weather-advice">Leave a little room for clear skies.</span><span class="weather-state-icon" id="weather-state-icon">${icon('sun')}</span></div>
               </section>
               <div class="metrics-grid">
-                <article class="metric-card"><div class="metric-label"><span id="processor-icon">${icon('cpu')}</span><span id="processor-label">处理器</span><span class="metric-dot purple"></span></div><div class="metric-value"><strong id="cpu-value">—</strong><small>%</small></div><div class="meter"><span id="cpu-meter"></span></div><div class="metric-caption" id="cpu-caption">等待观测</div></article>
-                <article class="metric-card"><div class="metric-label">${icon('memory')}<span>内存</span><span class="metric-dot blue"></span></div><div class="metric-value"><strong id="memory-value">—</strong><small>%</small></div><div class="meter memory-meter"><span id="memory-meter"></span></div><div class="metric-caption" id="memory-caption">等待观测</div></article>
-                <article class="metric-card fan-card"><div class="metric-label">${icon('fan','fan-icon')}<span>风扇</span><span class="metric-dot green"></span></div><div class="metric-value"><strong id="fan-value">—</strong><small>RPM</small></div><div class="wind-track">${icon('wind')}<span id="wind-caption">风速待观测</span></div><div class="metric-caption" id="fan-caption">等待传感器</div></article>
+                <article class="metric-card"><div class="metric-label"><span id="processor-icon">${icon('cpu')}</span><span id="processor-label">Processor</span><span class="metric-dot purple"></span></div><div class="metric-value"><strong id="cpu-value">—</strong><small>%</small></div><div class="meter"><span id="cpu-meter"></span></div><div class="metric-caption" id="cpu-caption">Awaiting data</div></article>
+                <article class="metric-card"><div class="metric-label">${icon('memory')}<span>Memory</span><span class="metric-dot blue"></span></div><div class="metric-value"><strong id="memory-value">—</strong><small>%</small></div><div class="meter memory-meter"><span id="memory-meter"></span></div><div class="metric-caption" id="memory-caption">Awaiting data</div></article>
+                <article class="metric-card fan-card"><div class="metric-label">${icon('fan','fan-icon')}<span>Fan</span><span class="metric-dot green"></span></div><div class="metric-value"><strong id="fan-value">—</strong><small>RPM</small></div><div class="wind-track">${icon('wind')}<span id="wind-caption">Awaiting wind</span></div><div class="metric-caption" id="fan-caption">Awaiting sensor</div></article>
               </div>
-              <section class="trend-card"><div class="section-heading"><div><h3>负载的风景 <span id="chart-series">CPU</span></h3><p>每一次起伏，都有迹可循。</p></div><div class="period-toggle" aria-label="观测时段"><button data-period="1">1 分钟</button><button class="active" data-period="5">5 分钟</button><button data-period="15">15 分钟</button></div></div><div id="chart-container" class="chart-container"></div><div class="chart-footer"><span><i></i><span id="chart-legend">CPU 使用率</span></span><span id="chart-average">平均 —</span></div></section>
+              <section class="trend-card"><div class="section-heading"><div><h3>Load over time <span id="chart-series">CPU</span></h3><p>Every little change, in view.</p></div><div class="period-toggle" aria-label="Time range"><button data-period="1">1 min</button><button class="active" data-period="5">5 min</button><button data-period="15">15 min</button></div></div><div id="chart-container" class="chart-container"></div><div class="chart-footer"><span><i></i><span id="chart-legend">CPU usage</span></span><span id="chart-average">Average —</span></div></section>
             </div>
             <aside class="secondary-column">
-              <section class="interpretation-card"><div class="section-heading"><h3>今天，电脑还好吗？</h3>${icon('leaf')}</div><div id="mood-label" class="mood-label">自在运行中</div><p id="mood-description">系统有充足的余裕，<br>让想法慢慢生长。</p><div class="insight-divider"></div><div class="insight-row"><span>当前观测</span><strong id="current-source">CPU 负载</strong></div><div class="insight-row"><span>系统已运行</span><strong id="uptime">—</strong></div><div class="insight-row"><span>更新频率</span><strong id="refresh-label">每 2 秒</strong></div><div class="insight-foot">${icon('check')}<span>数据只在这台电脑上</span></div></section>
-              <section class="legend-card"><h3>读懂这片天气</h3><p class="legend-subtitle">把复杂的数字，交给直觉。</p><div class="legend-row"><span class="legend-icon sunny">${icon('sun')}</span><div><b>晴天</b><span>轻松，自在运行</span></div><small>&lt; 40%</small></div><div class="legend-row"><span class="legend-icon cloudy">${icon('cloud')}</span><div><b>多云</b><span>正在认真工作</span></div><small>40–79%</small></div><div class="legend-row"><span class="legend-icon rainy">${icon('rain')}</span><div><b>暴雨</b><span>算力全力以赴</span></div><small>≥ 80%</small></div><div class="legend-row"><span class="legend-icon storm">${icon('storm')}</span><div><b>雷暴</b><span>内存需要喘口气</span></div><small id="legend-threshold">≥ 90%</small></div><div class="legend-note">内存预警优先于 CPU / GPU 天气</div></section>
-              <button id="widget-button" class="widget-promo"><span class="mini-tray">${icon('sun')}<b id="mini-load">—</b><span>◷</span></span><strong>把一片天空，放在手边 ${icon('arrow')}</strong><span>切换为轻盈的小组件</span></button>
+              <section class="interpretation-card"><div class="section-heading"><h3>How is your computer?</h3>${icon('leaf')}</div><div id="mood-label" class="mood-label">Room to breathe</div><p id="mood-description">Plenty of room.<br>Let your ideas grow.</p><div class="insight-divider"></div><div class="insight-row"><span>Weather source</span><strong id="current-source">CPU load</strong></div><div class="insight-row"><span>Uptime</span><strong id="uptime">—</strong></div><div class="insight-row"><span>Refresh interval</span><strong id="refresh-label">Every 2s</strong></div><div class="insight-foot">${icon('check')}<span>Your data stays on this computer</span></div></section>
+              <section class="legend-card"><h3>Read the sky</h3><p class="legend-subtitle">A little less counting. A little more feeling.</p><div class="legend-row"><span class="legend-icon sunny">${icon('sun')}</span><div><b>Sunny</b><span>Light and easy</span></div><small>&lt; 40%</small></div><div class="legend-row"><span class="legend-icon cloudy">${icon('cloud')}</span><div><b>Cloudy</b><span>Getting things done</span></div><small>40–79%</small></div><div class="legend-row"><span class="legend-icon rainy">${icon('rain')}</span><div><b>Heavy rain</b><span>Working at full speed</span></div><small>≥ 80%</small></div><div class="legend-row"><span class="legend-icon storm">${icon('storm')}</span><div><b>Storm</b><span>Memory needs some room</span></div><small id="legend-threshold">≥ 90%</small></div><div class="legend-note">Memory warnings take priority over CPU / GPU weather</div></section>
+              <button id="widget-button" class="widget-promo"><span class="mini-tray">${icon('sun')}<b id="mini-load">—</b><span>◷</span></span><strong>Keep a little sky nearby ${icon('arrow')}</strong><span>Switch to the compact widget</span></button>
             </aside>
           </div>
-          <footer class="page-footer"><span>${icon('leaf')} 少一些数字焦虑，多一点晴空。</span><span id="updated-at">等待第一次观测</span><button class="mobile-only text-button" data-view="history">观测记录 ${icon('arrow')}</button></footer>
+          <footer class="page-footer"><span>${icon('leaf')} Fewer numbers. A little more sky.</span><span id="updated-at">Awaiting the first reading</span><button class="mobile-only text-button" data-view="history">History ${icon('arrow')}</button></footer>
         </section>
 
-        <section id="history-view" class="view" hidden><button class="back-button mobile-only" data-view="overview">${icon('back')} 返回实况</button><div class="page-heading"><div><div class="eyebrow">EVERY LITTLE CHANGE.</div><h1>天气有迹可循<span class="heading-dot">.</span></h1><p>留住这一程的风和雨。</p></div><button id="export-history" class="secondary-button">${icon('download')} 导出 CSV</button></div><div class="history-stats"><article><span>观测样本</span><strong id="history-count">0</strong><small>本次运行 · 最多保留 30 分钟</small></article><article><span>平均负载</span><strong id="history-average">—</strong><small id="history-source">CPU 使用率</small></article><article><span>最高负载</span><strong id="history-maximum">—</strong><small>这片天空最忙碌的时刻</small></article></div><section class="records-card"><div class="section-heading"><h3>最近的观测</h3><span id="history-mode" class="subtle-label">实时数据</span></div><div class="table-scroll"><table><thead><tr><th>时间</th><th>天气</th><th>CPU</th><th>GPU</th><th>内存</th><th>风扇 RPM</th></tr></thead><tbody id="history-rows"></tbody></table></div><p class="records-note">保留本次打开后的观测。预览数据与真实记录分开保存。</p></section></section>
+        <section id="history-view" class="view" hidden><button class="back-button mobile-only" data-view="overview">${icon('back')} Back to overview</button><div class="page-heading"><div><div class="eyebrow">EVERY LITTLE CHANGE.</div><h1>A record of your sky<span class="heading-dot">.</span></h1><p>Keep track of the passing clouds.</p></div><button id="export-history" class="secondary-button">${icon('download')} Export CSV</button></div><div class="history-stats"><article><span>Readings</span><strong id="history-count">0</strong><small>This session · Last 30 minutes</small></article><article><span>Average load</span><strong id="history-average">—</strong><small id="history-source">CPU usage</small></article><article><span>Peak load</span><strong id="history-maximum">—</strong><small>The busiest moment in your sky</small></article></div><section class="records-card"><div class="section-heading"><h3>Recent readings</h3><span id="history-mode" class="subtle-label">Live data</span></div><div class="table-scroll"><table><thead><tr><th>Time</th><th>Weather</th><th>CPU</th><th>GPU</th><th>Memory</th><th>Fan RPM</th></tr></thead><tbody id="history-rows"></tbody></table></div><p class="records-note">Readings from this session. Preview and live records are kept separately.</p></section></section>
 
-        <section id="settings-view" class="view" hidden><button class="back-button mobile-only" data-view="overview">${icon('back')} 返回实况</button><div class="page-heading"><div><div class="eyebrow">MAKE YOURSELF AT HOME.</div><h1>你的天空，你做主<span class="heading-dot">.</span></h1><p>让气象站按你的节奏运转。</p></div></div><div class="settings-card"><h3>观测偏好</h3><label class="setting-row"><span><b>天气依据</b><small>选择决定晴雨的负载来源</small></span><select id="setting-source"><option value="cpu">CPU · 处理器</option><option value="gpu">GPU · 显卡</option></select></label><label class="setting-row"><span><b>观测频率</b><small>降低频率可以减少气象站开销</small></span><select id="setting-refresh"><option value="1000">每 1 秒</option><option value="2000">每 2 秒</option><option value="5000">每 5 秒</option></select></label><div class="setting-row threshold-row"><span><b>雷暴预警线</b><small>内存使用达到此值时，优先显示雷暴</small></span><label class="range-setting"><input id="setting-threshold" aria-label="雷暴预警内存百分比" type="range" min="70" max="98" step="1"><output id="threshold-output">90%</output></label></div><h3 class="settings-subheading">安静地陪伴</h3><label class="setting-row"><span><b>减少动态效果</b><small>让云、雨和风车安静下来</small></span><input class="switch" id="setting-motion" type="checkbox" role="switch"></label><label class="setting-row"><span><b>窗口始终置顶</b><small id="pin-setting-note">工作时也能看见天气</small></span><input class="switch" id="setting-pinned" type="checkbox" role="switch"></label><label class="setting-row"><span><b>开机时启动</b><small id="login-setting-note">登录电脑后，自动在托盘里观测</small></span><input class="switch" id="setting-login" type="checkbox" role="switch"></label></div><div class="about-card"><span class="brand-mark">${icon('sun')}</span><div><strong>机内气象 <span>CIRRUS 1.0</span></strong><p>天气来自你的电脑，好心情留给你。</p></div></div><p class="settings-footnote">GPU / 风扇数据取决于硬件与驱动支持。没有读数时会如实留空。</p></section>
+        <section id="settings-view" class="view" hidden><button class="back-button mobile-only" data-view="overview">${icon('back')} Back to overview</button><div class="page-heading"><div><div class="eyebrow">MAKE YOURSELF AT HOME.</div><h1>Make this sky yours<span class="heading-dot">.</span></h1><p>Set a rhythm that feels right.</p></div></div><div class="settings-card"><h3>Observation preferences</h3><label class="setting-row"><span><b>Weather source</b><small>Choose which load sets the weather</small></span><select id="setting-source"><option value="cpu">CPU · Processor</option><option value="gpu">GPU · Graphics</option></select></label><label class="setting-row"><span><b>Sampling interval</b><small>Less frequent readings use fewer resources</small></span><select id="setting-refresh"><option value="1000">Every 1s</option><option value="2000">Every 2s</option><option value="5000">Every 5s</option></select></label><div class="setting-row threshold-row"><span><b>Storm threshold</b><small>Show a thunderstorm when memory reaches this level</small></span><label class="range-setting"><input id="setting-threshold" aria-label="Memory threshold for thunderstorms" type="range" min="70" max="98" step="1"><output id="threshold-output">90%</output></label></div><h3 class="settings-subheading">A quieter companion</h3><label class="setting-row"><span><b>Reduce motion</b><small>Pause clouds, rain and the windmill</small></span><input class="switch" id="setting-motion" type="checkbox" role="switch"></label><label class="setting-row"><span><b>Always on top</b><small id="pin-setting-note">Keep the weather in view while you work</small></span><input class="switch" id="setting-pinned" type="checkbox" role="switch"></label><label class="setting-row"><span><b>Launch at login</b><small id="login-setting-note">Start in the system tray when you sign in</small></span><input class="switch" id="setting-login" type="checkbox" role="switch"></label></div><div class="about-card"><span class="brand-mark">${icon('sun')}</span><div><strong>Cirrus <span>${version} · DESKTOP WEATHER</span></strong><p>Weather from your computer. A little calm for you.</p></div></div><p class="settings-footnote">GPU and fan readings depend on hardware and driver support. Missing values stay blank.</p></section>
       </main>
     </div>
   </div>
@@ -132,7 +133,7 @@ async function savePreferences(patch) {
     if (demo && patch.source) { snapshot = makeDemo(demoWeather); seedDemoHistory(); }
     if (demo && patch.stormThreshold) { snapshot = makeDemo(demoWeather); seedDemoHistory(); }
     render();
-  } catch { toast('偏好未保存，请稍后重试。'); }
+  } catch { toast('Could not save preferences. Please try again.'); }
 }
 
 function syncPreferences() {
@@ -146,13 +147,13 @@ function syncPreferences() {
   $('#setting-login').checked = preferences.launchAtLogin;
   $('#pin-button').setAttribute('aria-pressed', String(preferences.pinned));
   $('#legend-threshold').textContent = `≥ ${preferences.stormThreshold}%`;
-  $('#refresh-label').textContent = `每 ${preferences.refreshInterval / 1000} 秒`;
+  $('#refresh-label').textContent = `Every ${preferences.refreshInterval / 1000}s`;
   document.documentElement.classList.toggle('reduced-motion', preferences.reducedMotion);
   if (!desktop) {
     $('#setting-pinned').disabled = true;
     $('#setting-login').disabled = true;
-    $('#pin-setting-note').textContent = '桌面版可用';
-    $('#login-setting-note').textContent = '桌面版可用';
+    $('#pin-setting-note').textContent = 'Available in the desktop app';
+    $('#login-setting-note').textContent = 'Available in the desktop app';
   }
 }
 
@@ -160,20 +161,20 @@ function setView(next) {
   view = next;
   $$('.view').forEach(el => { el.hidden = el.id !== `${next}-view`; });
   $$('.nav-item').forEach(el => { el.classList.toggle('active', el.dataset.view === next); el.setAttribute('aria-current', el.dataset.view === next ? 'page' : 'false'); });
-  $('#breadcrumb-title').textContent = { overview: '实况天气', history: '观测记录', settings: '气象站设置' }[next];
+  $('#breadcrumb-title').textContent = { overview: 'Overview', history: 'History', settings: 'Settings' }[next];
   if (next === 'history') renderHistory();
   $('main').scrollTop = 0;
 }
 
 async function toggleExpanded() {
   expanded = !expanded;
-  if (desktop) { try { await window.weatherStation.setExpanded(expanded); } catch { toast('窗口尺寸暂时无法切换。'); } }
-  else { document.body.classList.toggle('widget-preview', !expanded); toast(expanded ? '已展开完整气象站' : '小组件预览 · 右上角可展开'); }
+  if (desktop) { try { await window.weatherStation.setExpanded(expanded); } catch { toast('Could not change the window size. Please try again.'); } }
+  else { document.body.classList.toggle('widget-preview', !expanded); toast(expanded ? 'Full station view' : 'Widget preview · Expand from the top right'); }
 }
 
-function number(value, digits = 0) { return Number.isFinite(value) ? value.toLocaleString('zh-CN', { maximumFractionDigits: digits }) : '—'; }
-function time(timestamp) { return new Date(timestamp).toLocaleTimeString('zh-CN', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' }); }
-function uptimeLabel(seconds) { if (!Number.isFinite(seconds)) return '—'; const hours = Math.floor(seconds / 3600); return hours > 24 ? `${Math.floor(hours / 24)} 天 ${hours % 24} 时` : `${hours} 时 ${Math.floor(seconds % 3600 / 60)} 分`; }
+function number(value, digits = 0) { return Number.isFinite(value) ? value.toLocaleString('en-US', { maximumFractionDigits: digits }) : '—'; }
+function time(timestamp) { return new Date(timestamp).toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' }); }
+function uptimeLabel(seconds) { if (!Number.isFinite(seconds)) return '—'; const hours = Math.floor(seconds / 3600); return hours > 24 ? `${Math.floor(hours / 24)}d ${hours % 24}h` : `${hours}h ${Math.floor(seconds % 3600 / 60)}m`; }
 function selectedHistory() { return histories[demo ? 'demo' : 'live']; }
 
 function makeDemo(weather = demoWeather, timestamp = Date.now()) {
@@ -215,7 +216,7 @@ function setDemo(weather) {
   closePreview();
   setView('overview');
   render();
-  toast(`正在预览${{ sunny: '晴天', cloudy: '多云', rainy: '暴雨', storm: '雷暴' }[weather]} · 演示数据`);
+  toast(`Preview: ${{ sunny: 'Sunny', cloudy: 'Cloudy', rainy: 'Heavy rain', storm: 'Storm' }[weather]} · Demo data`);
 }
 
 function render() {
@@ -229,42 +230,42 @@ function render() {
   $('#weather-title').textContent = state.label;
   $('#weather-description').textContent = state.description;
   $('#weather-advice').textContent = state.advice;
-  $('#weather-kicker').textContent = state.reason === 'memory' ? '内存气压升高了' : '此刻的天气';
+  $('#weather-kicker').textContent = state.reason === 'memory' ? 'MEMORY PRESSURE RISING' : 'WEATHER RIGHT NOW';
   $('#hero-load').innerHTML = `${number(load)}${load !== null ? '<em>%</em>' : ''}`;
   $('#hero-source').textContent = preferences.source.toUpperCase();
-  $('#station-label').textContent = demo ? '小小气象站 · 天气预览' : '本机 · 实况观测';
-  $('#connection-label').textContent = demo ? '预览模式' : (snapshot ? '实时观测中' : '正在连接');
+  $('#station-label').textContent = demo ? 'Local · Preview' : 'Local · Live readings';
+  $('#connection-label').textContent = demo ? 'Preview' : (snapshot ? 'Live' : 'Connecting');
   $('.connection-badge').classList.toggle('is-demo', demo);
   $('#preview-toggle').classList.toggle('is-demo', demo);
-  $('#processor-label').textContent = preferences.source === 'cpu' ? '处理器' : '显卡';
+  $('#processor-label').textContent = preferences.source === 'cpu' ? 'Processor' : 'Graphics';
   $('#processor-icon').innerHTML = icon(preferences.source);
   $('#cpu-value').textContent = number(load);
   $('#memory-value').textContent = number(mem?.usage);
   $('#fan-value').textContent = number(rpm);
   $('#cpu-meter').style.width = `${Math.min(100, Math.max(0, load ?? 0))}%`;
   $('#memory-meter').style.width = `${Math.min(100, Math.max(0, mem?.usage ?? 0))}%`;
-  $('#cpu-caption').textContent = load === null ? '未检测到传感器' : `${preferences.source.toUpperCase()} · ${{sunny:'轻盈运行',cloudy:'有条不紊',rainy:'全力运转',storm:'运行中',unknown:'等待观测'}[weather]}`;
+  $('#cpu-caption').textContent = load === null ? 'Sensor unavailable' : `${preferences.source.toUpperCase()} · ${{sunny:'Light load',cloudy:'Steady work',rainy:'Working hard',storm:'Active',unknown:'Awaiting data'}[weather]}`;
   $('#cpu-caption').title = selected?.name || '';
-  $('#memory-caption').textContent = mem ? `${number(mem.usedGB, 1)} / ${number(mem.totalGB, 1)} GB` : '等待观测';
+  $('#memory-caption').textContent = mem ? `${number(mem.usedGB, 1)} / ${number(mem.totalGB, 1)} GB` : 'Awaiting data';
   $('#memory-caption').classList.toggle('warning-text', (mem?.usage ?? 0) >= preferences.stormThreshold);
-  $('#wind-caption').textContent = Number.isFinite(rpm) ? (rpm === 0 ? '风暂时停了' : rpm < 1500 ? '轻风徐来' : rpm < 2500 ? '微风正好' : '风渐渐大了') : '静候风的消息';
-  $('#fan-caption').textContent = Number.isFinite(rpm) ? (demo ? '预览传感器' : snapshot.fan.source || '转速传感器') : '未检测到转速';
+  $('#wind-caption').textContent = Number.isFinite(rpm) ? (rpm === 0 ? 'Still air' : rpm < 1500 ? 'Light breeze' : rpm < 2500 ? 'Steady breeze' : 'Wind picking up') : 'Awaiting wind';
+  $('#fan-caption').textContent = Number.isFinite(rpm) ? (demo ? 'Demo sensor' : snapshot.fan.source || 'RPM sensor') : 'RPM unavailable';
   $('.fan-icon').style.animationDuration = Number.isFinite(rpm) && rpm > 0 ? `${Math.max(.4, 2400 / rpm)}s` : '0s';
   $('#weather-state-icon').innerHTML = icon(weatherIcon(weather));
-  $('#current-source').textContent = `${preferences.source.toUpperCase()} 负载`;
+  $('#current-source').textContent = `${preferences.source.toUpperCase()} load`;
   $('#uptime').textContent = uptimeLabel(snapshot?.uptime);
   const mood = {
-    sunny: ['自在运行中', '系统有充足的余裕，让想法慢慢生长。'],
-    cloudy: ['有一点忙，也刚刚好', '云朵正在聚拢，电脑正在认真处理手头的事情。'],
-    rainy: ['正在全力以赴', '计算的雨下大了。稍作等待，或暂停不需要的任务。'],
-    storm: ['给内存一点呼吸', '内存使用较高，试着关闭暂时不用的应用或标签页。'],
-    unknown: ['等待天空的消息', '暂时没有这个传感器的读数。可以切换观测来源。'],
+    sunny: ['Room to breathe', 'Plenty of room for your next idea.'],
+    cloudy: ['A little busy', 'A few clouds as your computer gets things done.'],
+    rainy: ['Working at full speed', 'Heavy computation ahead. Give it time or pause unused tasks.'],
+    storm: ['Give memory some room', 'Memory is filling up. Try closing unused apps or tabs.'],
+    unknown: ['Waiting for the sky', 'This sensor has no readings yet. Try the other weather source.'],
   }[weather];
   $('#mood-label').textContent = mood[0];
   $('#mood-description').textContent = mood[1];
   $('#mini-load').textContent = formatPercent(load);
   $('.mini-tray .icon').outerHTML = icon(weatherIcon(weather));
-  $('#updated-at').textContent = snapshot ? `${demo ? '预览数据' : '最近观测'} ${time(snapshot.timestamp)}` : '等待第一次观测';
+  $('#updated-at').textContent = snapshot ? `${demo ? 'Preview data' : 'Updated'} ${time(snapshot.timestamp)}` : 'Awaiting the first reading';
   $$('[data-demo]').forEach(button => button.setAttribute('aria-pressed', String(demo && button.dataset.demo === demoWeather)));
   updateWeatherScene($('.weather-scene'), weather, rpm ?? null, { reducedMotion: preferences.reducedMotion });
   renderChart();
@@ -276,10 +277,10 @@ function renderChart() {
   const summary = summarizeHistory(list, preferences.source);
   const series = preferences.source.toUpperCase();
   $('#chart-series').textContent = series;
-  $('#chart-legend').textContent = `${series} 使用率${demo ? ' · 预览' : ''}`;
-  $('#chart-average').textContent = `平均 ${formatPercent(summary.avg)}`;
+  $('#chart-legend').textContent = `${series} usage${demo ? ' · preview' : ''}`;
+  $('#chart-average').textContent = `Average ${formatPercent(summary.avg)}`;
   if (!list.length || !summary.count) {
-    $('#chart-container').innerHTML = '<div class="chart-empty">还没有可用读数<br><span>收到观测数据后，风景会慢慢展开。</span></div>';
+    $('#chart-container').innerHTML = '<div class="chart-empty">No readings yet<br><span>Your chart will grow as readings arrive.</span></div>';
     return;
   }
   const width = 620, height = 128, left = 34, right = 604, top = 12, bottom = 103;
@@ -293,7 +294,7 @@ function renderChart() {
     return `<path d="${d} L${segment.at(-1).x.toFixed(2)},${bottom} L${segment[0].x.toFixed(2)},${bottom}Z" fill="url(#chart-fill)"/><path d="${d}" fill="none" stroke="#8c86c7" stroke-width="2.2" stroke-linejoin="round"/>`;
   }).join('');
   const last = points.filter(p=>p.valid).at(-1);
-  $('#chart-container').innerHTML = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="最近 ${period} 分钟 ${series} 负载曲线，平均 ${formatPercent(summary.avg)}"><defs><linearGradient id="chart-fill" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#b7b0e0" stop-opacity=".28"/><stop offset="1" stop-color="#b7b0e0" stop-opacity=".015"/></linearGradient></defs>${[0,50,100].map(n=>`<line x1="${left}" x2="${right}" y1="${bottom-n/100*(bottom-top)}" y2="${bottom-n/100*(bottom-top)}" stroke="#ececf1" stroke-dasharray="3 5"/><text x="22" y="${bottom-n/100*(bottom-top)+3}" text-anchor="end" fill="#a2a3b1" font-size="9">${n}%</text>`).join('')}${lineMarkup}${last ? `<circle cx="${last.x}" cy="${last.y}" r="3.5" fill="#8c86c7" stroke="white" stroke-width="2"/>` : ''}<text x="${left}" y="124" fill="#a2a3b1" font-size="9">${period} 分钟前</text><text x="${right}" y="124" fill="#a2a3b1" font-size="9" text-anchor="end">现在</text></svg>`;
+  $('#chart-container').innerHTML = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${series} load over the last ${period} minutes; average ${formatPercent(summary.avg)}"><defs><linearGradient id="chart-fill" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#b7b0e0" stop-opacity=".28"/><stop offset="1" stop-color="#b7b0e0" stop-opacity=".015"/></linearGradient></defs>${[0,50,100].map(n=>`<line x1="${left}" x2="${right}" y1="${bottom-n/100*(bottom-top)}" y2="${bottom-n/100*(bottom-top)}" stroke="#ececf1" stroke-dasharray="3 5"/><text x="22" y="${bottom-n/100*(bottom-top)+3}" text-anchor="end" fill="#a2a3b1" font-size="9">${n}%</text>`).join('')}${lineMarkup}${last ? `<circle cx="${last.x}" cy="${last.y}" r="3.5" fill="#8c86c7" stroke="white" stroke-width="2"/>` : ''}<text x="${left}" y="124" fill="#a2a3b1" font-size="9">${period} min ago</text><text x="${right}" y="124" fill="#a2a3b1" font-size="9" text-anchor="end">Now</text></svg>`;
 }
 
 function renderHistory() {
@@ -302,22 +303,22 @@ function renderHistory() {
   $('#history-count').textContent = list.length;
   $('#history-average').textContent = formatPercent(summary.avg);
   $('#history-maximum').textContent = formatPercent(summary.max);
-  $('#history-source').textContent = `${preferences.source.toUpperCase()} 使用率`;
-  $('#history-mode').textContent = demo ? '预览数据' : '本次实时观测';
+  $('#history-source').textContent = `${preferences.source.toUpperCase()} usage`;
+  $('#history-mode').textContent = demo ? 'Preview data' : 'Live session';
   $('#export-history').disabled = !list.length;
   $('#history-rows').innerHTML = list.length ? list.slice(-30).reverse().map(sample => {
     const state = deriveWeather(sample, preferences.source, preferences.stormThreshold);
     return `<tr><td>${time(sample.timestamp)}</td><td><span class="table-weather ${state.id}">${icon(weatherIcon(state.id))}${state.label}</span></td><td>${formatPercent(sample.cpu?.usage)}</td><td>${formatPercent(sample.gpu?.usage)}</td><td>${formatPercent(sample.memory?.usage)}</td><td>${number(sample.fan?.rpm)}</td></tr>`;
-  }).join('') : '<tr><td colspan="6" class="empty-records">天空还没有留下记录，稍后再来看看。</td></tr>';
+  }).join('') : '<tr><td colspan="6" class="empty-records">No readings yet. Your sky will leave a trail here.</td></tr>';
 }
 
 function exportHistory() {
-  const rows = [['数据模式','时间','天气依据','天气','CPU (%)','GPU (%)','内存 (%)','内存已用 (GB)','内存总量 (GB)','风扇 (RPM)']];
-  for (const sample of selectedHistory()) rows.push([demo ? '预览' : '实时',new Date(sample.timestamp).toISOString(),preferences.source.toUpperCase(),deriveWeather(sample,preferences.source,preferences.stormThreshold).label,sample.cpu?.usage,sample.gpu?.usage,sample.memory?.usage,sample.memory?.usedGB,sample.memory?.totalGB,sample.fan?.rpm]);
+  const rows = [['Mode','Time','Weather source','Weather','CPU (%)','GPU (%)','Memory (%)','Memory used (GB)','Memory total (GB)','Fan (RPM)']];
+  for (const sample of selectedHistory()) rows.push([demo ? 'preview' : 'live',new Date(sample.timestamp).toISOString(),preferences.source.toUpperCase(),deriveWeather(sample,preferences.source,preferences.stormThreshold).label,sample.cpu?.usage,sample.gpu?.usage,sample.memory?.usage,sample.memory?.usedGB,sample.memory?.totalGB,sample.fan?.rpm]);
   const text = '\uFEFF' + rows.map(row => row.map(v=>`"${String(v ?? '').replaceAll('"','""')}"`).join(',')).join('\r\n');
   const url = URL.createObjectURL(new Blob([text], {type:'text/csv;charset=utf-8'}));
   const a = document.createElement('a'); a.href = url; a.download = `Cirrus-${demo ? 'preview' : 'live'}-${new Date().toISOString().slice(0,10)}.csv`; a.click(); setTimeout(()=>URL.revokeObjectURL(url),5000);
-  toast(`已导出 ${selectedHistory().length} 条${demo ? '预览' : '观测'}记录`);
+  toast(`Exported ${selectedHistory().length} ${demo ? 'preview' : 'live'} records`);
 }
 
 function closePreview() { $('#preview-popover').hidden = true; $('#preview-toggle').setAttribute('aria-expanded','false'); }
@@ -329,7 +330,7 @@ $$('[data-period]').forEach(button => button.addEventListener('click', () => { p
 $('#preview-toggle').addEventListener('click', () => { const open = $('#preview-popover').hidden; $('#preview-popover').hidden = !open; $('#preview-toggle').setAttribute('aria-expanded', String(open)); });
 document.addEventListener('click', event => { if (!event.target.closest('.preview-anchor')) closePreview(); });
 document.addEventListener('keydown', event => { if (event.key === 'Escape') { closePreview(); if (view !== 'overview') setView('overview'); } });
-$('#return-live')?.addEventListener('click', () => { demo = false; snapshot = liveSnapshot; closePreview(); render(); toast('已返回真实电脑天气'); });
+$('#return-live')?.addEventListener('click', () => { demo = false; snapshot = liveSnapshot; closePreview(); render(); toast('Back to live desktop weather'); });
 $('#pin-button').addEventListener('click', () => savePreferences({pinned:!preferences.pinned}));
 $('#expand-button').addEventListener('click', toggleExpanded);
 $('#widget-button').addEventListener('click', toggleExpanded);
@@ -359,7 +360,7 @@ async function init() {
       liveSnapshot = await window.weatherStation.getSnapshot();
       snapshot = liveSnapshot;
       addSample(snapshot, 'live');
-    } catch { toast('暂时无法连接监测服务，请重新打开气象站。'); }
+    } catch { toast('Could not connect to the sensor service. Please reopen Cirrus.'); }
   } else seedDemoHistory();
   syncPreferences();
   render();

@@ -21,7 +21,7 @@ class MetricsSampler extends EventEmitter {
     this.interval = interval;
     this.previousCpu = cpuTimes();
     this.cpuUsage = null;
-    this.gpu = { usage: null, name: '未检测到 GPU 传感器', temperature: null };
+    this.gpu = { usage: null, name: 'GPU sensor unavailable', temperature: null };
     this.fan = { rpm: null, source: null };
     this.gpuUpdated = 0;
     this.fanUpdated = 0;

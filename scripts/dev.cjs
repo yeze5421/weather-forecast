@@ -28,7 +28,7 @@ server.on('exit', close);
     } catch {}
     await new Promise(resolve => setTimeout(resolve, 200));
   }
-  console.error('无法启动本地预览服务。');
+  console.error('Unable to start the local preview server.');
   close();
   process.exitCode = 1;
 })();

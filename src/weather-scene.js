@@ -9,7 +9,7 @@ export function weatherSceneMarkup() {
     return `<path class="ws-raindrop" style="--drop-delay:${-(index * 0.17).toFixed(2)}s;--drop-duration:${(0.82 + index % 4 * 0.13).toFixed(2)}s" d="M${x} ${y}l-7 15"/>`;
   }).join('');
 
-  return `<svg class="ws-landscape" viewBox="0 0 640 260" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="晴天，安静的机内气象风景" preserveAspectRatio="xMidYMax slice">
+  return `<svg class="ws-landscape" viewBox="0 0 640 260" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Clear skies over a quiet desktop landscape" preserveAspectRatio="xMidYMax slice">
     <defs>
       <linearGradient id="${id}-sky" x1="320" y1="0" x2="320" y2="260" gradientUnits="userSpaceOnUse">
         <stop class="ws-sky-top"/>
@@ -103,11 +103,11 @@ export function weatherSceneMarkup() {
 }
 
 const labels = {
-  sunny: '晴天，安静的机内气象风景',
-  cloudy: '多云，云朵经过机内气象站',
-  rainy: '暴雨，雨滴落在机内气象站',
-  storm: '雷暴，内存压力带来闪电',
-  unknown: '等待观测，机内气象站暂无数据',
+  sunny: 'Clear skies over a quiet desktop landscape',
+  cloudy: 'Clouds passing over the desktop weather station',
+  rainy: 'Heavy rain falling on the desktop weather station',
+  storm: 'Thunderstorm and lightning caused by memory pressure',
+  unknown: 'Awaiting readings from the desktop weather station',
 };
 
 export function updateWeatherScene(container, weatherId, fanRpm, { reducedMotion = false } = {}) {
