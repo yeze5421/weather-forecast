@@ -9,6 +9,10 @@ const listen = (channel, callback) => {
 
 contextBridge.exposeInMainWorld('weatherStation', Object.freeze({
   getSnapshot: () => ipcRenderer.invoke('weather:snapshot'),
+  getHistory: () => ipcRenderer.invoke('weather:history'),
+  onActivity: callback => listen('weather:activity', callback),
+  setWindowMode: mode => ipcRenderer.invoke('weather:mode', mode),
+  retrySensors: () => ipcRenderer.invoke('weather:retry-sensors'),
   onSnapshot: callback => listen('weather:snapshot-changed', callback),
   getPreferences: () => ipcRenderer.invoke('weather:preferences'),
   savePreferences: patch => ipcRenderer.invoke('weather:save-preferences', patch),

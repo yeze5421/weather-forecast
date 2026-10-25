@@ -216,6 +216,96 @@ async function launch() {
   assert.equal(loginCalls[1].openAtLogin, false);
   assert.deepEqual(loginCalls[0].args, packagedExecutable ? ['--hidden'] : [root, '--hidden']);
   check('startup toggle targets are configured without modifying host startup');
+  // Exercise real native lifecycle events without locking or suspending the host.
+  const upgradePreferences = await page.evaluate(() => window.weatherStation.getPreferences());
+  assert.equal(upgradePreferences.energySaving, true);
+  assert.equal(upgradePreferences.alertsEnabled, false);
+  assert.equal(upgradePreferences.smoothWeather, true);
+  for (const patch of [{ windowMode: 'shell' }, { alertsEnabled: 'yes' }, { alertDuration: -1 }, { miniPosition: { x: 1e12, y: 0 } }]) {
+    assert(await page.evaluate(async value => { try { await window.weatherStation.savePreferences(value); return false; } catch { return true; } }, patch));
+  }
+  await page.evaluate(() => window.weatherStation.savePreferences({ refreshInterval: 1000, energySaving: true }));
+  await desktop.evaluate(({ powerMonitor }) => powerMonitor.emit('on-battery'));
+  assert.equal((await page.evaluate(() => window.weatherStation.getSnapshot())).runtime.mode, 'battery');
+  await desktop.evaluate(({ powerMonitor }) => powerMonitor.emit('lock-screen'));
+  assert.equal((await page.evaluate(() => window.weatherStation.getSnapshot())).runtime.interval, 15000);
+  await desktop.evaluate(({ powerMonitor }) => { powerMonitor.emit('unlock-screen'); powerMonitor.emit('on-ac'); });
+  assert.equal((await page.evaluate(() => window.weatherStation.getSnapshot())).runtime.interval, 1000);
+  check('upgrade defaults, new IPC validation and battery / lock policies');
+
+  const historyBefore = (await page.evaluate(() => window.weatherStation.getHistory())).length;
+  await page.evaluate(() => { window.__smokePushes = 0; window.__smokeOff = window.weatherStation.onSnapshot(() => window.__smokePushes++); return window.weatherStation.hide(); });
+  await page.waitForTimeout(100);
+  await page.evaluate(() => { window.__smokePushes = 0; });
+  await page.waitForTimeout(5500);
+  assert.equal(await page.evaluate(() => window.__smokePushes), 0);
+  assert((await page.evaluate(() => window.weatherStation.getHistory())).length > historyBefore);
+  assert.equal((await page.evaluate(() => window.weatherStation.getSnapshot())).runtime.mode, 'background');
+  await desktop.evaluate(({ app }) => app.emit('second-instance', {}, [], ''));
+  await page.waitForFunction(() => !document.body.classList.contains('inactive'));
+  await page.evaluate(() => window.__smokeOff());
+  check('hidden window receives no reading pushes while session history continues');
+
+  await desktop.evaluate(({ powerMonitor }) => powerMonitor.emit('suspend'));
+  const sleeping = await page.evaluate(() => window.weatherStation.getSnapshot());
+  assert.equal(sleeping.runtime.mode, 'suspended');
+  assert.equal(sleeping.cpu.usage, null);
+  assert.equal(sleeping.gpu.usage, null);
+  await desktop.evaluate(({ powerMonitor }) => powerMonitor.emit('resume'));
+  await page.waitForFunction(async () => Number.isFinite((await window.weatherStation.getSnapshot()).cpu.usage), { timeout: 15000 });
+  const retry = await page.evaluate(() => window.weatherStation.retrySensors());
+  assert.equal(retry, true);
+  assert.equal(await page.evaluate(() => window.weatherStation.retrySensors()), false);
+  await page.waitForFunction(() => document.querySelector('#fan-detail').textContent.length > 15);
+  check('sleep invalidates readings, resume reconnects and manual retry is rate limited');
+
+  await page.locator('#mini-button').click();
+  await page.waitForFunction(() => innerWidth === 320 && document.body.classList.contains('mini-mode'));
+  assert.equal(await page.locator('.mini-widget').isVisible(), true);
+  const miniLayout = await page.evaluate(() => ({ width: innerWidth, height: innerHeight, scrollWidth: document.documentElement.scrollWidth, scrollHeight: document.documentElement.scrollHeight }));
+  assert.equal(miniLayout.height, 210);
+  assert(miniLayout.scrollWidth <= miniLayout.width && miniLayout.scrollHeight <= miniLayout.height);
+  await assertEnglishInterface(page, 'mini mode');
+  await desktop.evaluate(({ BrowserWindow, screen }) => { const w = BrowserWindow.getAllWindows()[0]; const area = screen.getPrimaryDisplay().workArea; w.setPosition(area.x + 40, area.y + 50); w.emit('move'); w.emit('blur'); });
+  await page.waitForTimeout(500);
+  assert.equal(await desktop.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].isVisible()), true);
+  const miniPosition = (await page.evaluate(() => window.weatherStation.getPreferences())).miniPosition;
+  assert(Number.isInteger(miniPosition.x) && Number.isInteger(miniPosition.y));
+  await page.locator('#mini-source').click();
+  await page.waitForFunction(() => document.querySelector('#mini-source').textContent === 'CPU');
+  await page.screenshot({ path: path.join(artifacts, 'desktop-mini.png') });
+  await desktop.close(); desktop = null;
+  page = await launch();
+  page.on('pageerror', error => pageErrors.push(error.message));
+  await page.waitForFunction(() => document.body.classList.contains('mini-mode'));
+  for (let attempt = 0; attempt < 50; attempt++) {
+    if (await desktop.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].isVisible())) break;
+    await page.waitForTimeout(100);
+  }
+  const restoredMini = await desktop.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].getBounds());
+  assert.equal(restoredMini.x, miniPosition.x);
+  assert.equal(restoredMini.y, miniPosition.y);
+  await page.locator('#mini-open').click();
+  await page.waitForFunction(() => innerWidth > 700 && !document.body.classList.contains('mini-mode'));
+  check('mini desktop fits, stays open on blur, switches source and restores its dragged position');
+
+  await page.locator('nav [data-view="settings"]').click();
+  assert.equal(await page.locator('#setting-alerts').isChecked(), false);
+  await page.locator('#setting-alerts').check();
+  await page.locator('#setting-alert-duration').selectOption('30');
+  await page.locator('#setting-temperature').selectOption('90');
+  await page.waitForFunction(async () => (await window.weatherStation.getPreferences()).temperatureThreshold === 90);
+  await page.locator('#setting-alerts').uncheck();
+  assert.equal((await page.evaluate(() => window.weatherStation.getPreferences())).alertsEnabled, false);
+  await assertEnglishInterface(page, 'sensor diagnostics and alert settings');
+  await page.screenshot({ path: path.join(artifacts, 'desktop-upgrade-settings.png'), fullPage: true });
+  await page.locator('nav [data-view="overview"]').click();
+  await page.locator('#preview-toggle').click();
+  await page.locator('[data-demo="rainy"]').click();
+  assert.equal(await page.locator('#gpu-temperature').textContent(), '73 °C');
+  await page.locator('#preview-toggle').click();
+  await page.locator('#return-live').click();
+  check('temperature preview, English diagnostics and opt-in alert settings');
   await page.evaluate(() => window.weatherStation.savePreferences({ reducedMotion: true, stormThreshold: 92, source: 'gpu', theme: 'forest' }));
   await desktop.close();
   desktop = null;
@@ -230,7 +320,7 @@ async function launch() {
   assert.equal(await page.evaluate(() => document.documentElement.dataset.theme), 'forest');
   check('preferences persist across process relaunch');
   assert.deepEqual(pageErrors, []);
-  await page.evaluate(() => window.weatherStation.savePreferences({ source: 'cpu', launchAtLogin: false, pinned: false, reducedMotion: false, refreshInterval: 2000, stormThreshold: 90, theme: 'midnight' }));
+  await page.evaluate(() => window.weatherStation.savePreferences({ source: 'cpu', launchAtLogin: false, pinned: false, reducedMotion: false, refreshInterval: 2000, stormThreshold: 90, theme: 'midnight', windowMode: 'widget', alertsEnabled: false, energySaving: true }));
   const result = { passed: checks.length, checks, snapshot, webPreferences, compactLayout, expandedLayout, layoutIssues, screenshots: ['desktop-compact.png', 'desktop-storm.png', 'desktop-expanded.png'], timestamp: new Date().toISOString() };
   fs.writeFileSync(path.join(artifacts, 'desktop-smoke-results.json'), JSON.stringify(result, null, 2));
   console.log(JSON.stringify({ passed: result.passed, checks, compactLayout, expandedLayout, layoutIssues, screenshots: result.screenshots }, null, 2));

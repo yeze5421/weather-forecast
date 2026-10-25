@@ -44,5 +44,13 @@ let desktop;
       await page.waitForTimeout(110);
     }
   }
-  console.log(JSON.stringify({ frames: frame, syntheticDataOnly: true, width: 1120, height: 820 }));
+  await page.locator('nav [data-view="overview"]').click();
+  await page.evaluate(() => window.weatherStation.savePreferences({ theme: 'midnight', source: 'cpu' }));
+  await page.locator('#preview-toggle').click();
+  await page.locator('[data-demo="rainy"]').click();
+  await page.locator('#mini-button').click();
+  await page.waitForFunction(() => innerWidth === 320 && document.body.classList.contains('mini-mode'));
+  if (await page.locator('#mini-mode-label').textContent() !== 'PREVIEW') throw new Error('The mini image must use demo readings');
+  await page.screenshot({ path: path.join(root, 'docs', 'mini-desktop.png') });
+  console.log(JSON.stringify({ frames: frame, syntheticDataOnly: true, width: 1120, height: 820, mini: 'docs/mini-desktop.png' }));
 })().catch(error => { console.error(error); process.exitCode = 1; }).finally(async () => { if (desktop) await desktop.close(); });

@@ -1,9 +1,10 @@
 import './style.css';
 import './themes.css';
+import './upgrades.css';
 import { version } from '../package.json';
 import { DEFAULT_THEME, resolveTheme, applyTheme } from './themes.js';
 import { themePickerMarkup } from './theme-picker.js';
-import { deriveWeather, createDemoSnapshot, formatPercent, summarizeHistory } from './weather-model.js';
+import { WEATHER_STATES, deriveWeather, createDemoSnapshot, formatPercent, summarizeHistory } from './weather-model.js';
 import { weatherSceneMarkup, updateWeatherScene } from './weather-scene.js';
 
 const iconPaths = {
@@ -34,7 +35,7 @@ const weatherIcon = id => ({ sunny: 'sun', cloudy: 'cloud', rainy: 'rain', storm
 const $ = selector => document.querySelector(selector);
 const $$ = selector => [...document.querySelectorAll(selector)];
 const desktop = Boolean(window.weatherStation);
-const defaults = { source: 'cpu', launchAtLogin: false, pinned: false, reducedMotion: false, refreshInterval: 2000, stormThreshold: 90, theme: DEFAULT_THEME };
+const defaults = { source: 'cpu', launchAtLogin: false, pinned: false, reducedMotion: false, refreshInterval: 2000, stormThreshold: 90, theme: DEFAULT_THEME, energySaving: true, smoothWeather: true, alertsEnabled: false, alertDuration: 60, temperatureThreshold: 85, windowMode: desktop ? 'widget' : 'station' };
 let preferences = { ...defaults };
 try { if (!desktop) preferences = { ...defaults, ...JSON.parse(localStorage.getItem('cirrus-preferences') || '{}') }; } catch {}
 if (!['cpu', 'gpu'].includes(preferences.source)) preferences.source = 'cpu';
@@ -51,6 +52,8 @@ let histories = { live: [], demo: [] };
 let toastTimer;
 let lastSampleTime = 0;
 let previewInterval;
+let active = !document.hidden;
+let activityGeneration = 0;
 const app = $('#app');
 
 app.innerHTML = `
@@ -118,6 +121,27 @@ app.innerHTML = `
   <div id="toast" class="toast" role="status" hidden></div>
 `;
 
+$('#expand-button').insertAdjacentHTML('beforebegin', `<button id="mini-button" class="icon-button" title="Mini desktop mode" aria-label="Mini desktop mode">${icon('monitor')}</button>`);
+$('.metrics-grid').insertAdjacentHTML('afterend', `<div class="thermal-strip"><span>GPU temperature <strong id="gpu-temperature">—</strong></span><span id="thermal-note">Waiting for a temperature sensor</span></div>`);
+$('#settings-view .about-card').insertAdjacentHTML('beforebegin', `
+  <div class="settings-card upgrades-settings">
+    <h3>Desktop and power</h3>
+    <label class="setting-row"><span><b>Window mode</b><small>Drag the mini header to keep a little sky anywhere</small></span><select id="setting-mode"><option value="mini">Mini desktop</option><option value="widget">Tray widget</option><option value="station">Full station</option></select></label>
+    <label class="setting-row"><span><b>Energy saving</b><small>Slow sampling in the background, on battery and while locked</small></span><input class="switch" id="setting-energy" type="checkbox" role="switch"></label>
+    <label class="setting-row"><span><b>Smooth weather</b><small>Soften short spikes and keep skies from changing too often</small></span><input class="switch" id="setting-smoothing" type="checkbox" role="switch"></label>
+    <h3 class="settings-subheading">Quiet alerts</h3>
+    <label class="setting-row"><span><b>Desktop alerts</b><small>Local notices for sustained load, memory pressure or GPU heat</small></span><input class="switch" id="setting-alerts" type="checkbox" role="switch"></label>
+    <label class="setting-row"><span><b>Wait before notifying</b><small>Each kind of alert has a 15-minute cooldown</small></span><select id="setting-alert-duration"><option value="30">30 seconds</option><option value="60">1 minute</option><option value="120">2 minutes</option></select></label>
+    <label class="setting-row"><span><b>GPU temperature alert</b><small>Only when a real temperature reading is available</small></span><select id="setting-temperature"><option value="60">60 °C</option><option value="65">65 °C</option><option value="70">70 °C</option><option value="75">75 °C</option><option value="80">80 °C</option><option value="85">85 °C</option><option value="90">90 °C</option><option value="95">95 °C</option><option value="100">100 °C</option></select></label>
+    <p id="notification-status" class="diagnostic-note">Alerts are off by default.</p>
+  </div>
+  <section class="settings-card diagnostics-card" aria-label="Sensor diagnostics"><div class="diagnostic-heading"><h3>Sensor health</h3><button id="retry-sensors" class="secondary-button">Reconnect</button></div><p class="diagnostic-note">Actual sensor status, including while Preview is open.</p>
+    <div class="sensor-row"><span>GPU <b id="gpu-status">Waiting</b></span><p id="gpu-detail">Waiting for sensor status.</p></div>
+    <div class="sensor-row"><span>Fan <b id="fan-status">Waiting</b></span><p id="fan-detail">Waiting for sensor status.</p></div>
+    <p id="power-status" class="diagnostic-note">Local sampling</p>
+  </section>`);
+app.insertAdjacentHTML('beforeend', `<section class="mini-widget" aria-label="Mini desktop weather"><header class="mini-header"><span>Cirrus <small id="mini-mode-label">LIVE SKY</small></span><div><button id="mini-source" aria-label="Switch CPU or GPU">CPU</button><button id="mini-open" title="Open full station" aria-label="Open full station">${icon('expand')}</button><button id="mini-hide" title="Hide to system tray" aria-label="Hide to system tray">${icon('close')}</button></div></header><div class="mini-sky"><div class="weather-scene mini-scene" aria-hidden="true">${weatherSceneMarkup()}</div><div class="mini-reading"><span id="mini-weather">Awaiting data</span><strong id="mini-usage">—</strong><small id="mini-sensor">CPU usage</small></div></div><footer class="mini-footer"><span>Memory <b id="mini-memory">—</b></span><span>GPU <b id="mini-temperature">—</b></span><span>Fan <b id="mini-fan">—</b></span></footer></section>`);
+
 if (!desktop) $$('.desktop-action').forEach(el => { el.hidden = true; });
 
 function toast(message) {
@@ -153,6 +177,17 @@ function syncPreferences() {
   $('#setting-motion').checked = preferences.reducedMotion;
   $('#setting-pinned').checked = preferences.pinned;
   $('#setting-login').checked = preferences.launchAtLogin;
+  $('#setting-mode').value = preferences.windowMode;
+  $('#setting-energy').checked = preferences.energySaving;
+  $('#setting-smoothing').checked = preferences.smoothWeather;
+  $('#setting-alerts').checked = preferences.alertsEnabled;
+  $('#setting-alert-duration').value = String(preferences.alertDuration);
+  $('#setting-temperature').value = String(preferences.temperatureThreshold);
+  $('#setting-alert-duration').disabled = !preferences.alertsEnabled;
+  $('#setting-temperature').disabled = !preferences.alertsEnabled;
+  expanded = preferences.windowMode === 'station';
+  document.body.classList.toggle('mini-mode', preferences.windowMode === 'mini');
+  document.body.classList.toggle('widget-preview', !desktop && preferences.windowMode === 'widget');
   $('#pin-button').setAttribute('aria-pressed', String(preferences.pinned));
   $('#legend-threshold').textContent = `≥ ${preferences.stormThreshold}%`;
   $('#refresh-label').textContent = `Every ${preferences.refreshInterval / 1000}s`;
@@ -160,6 +195,9 @@ function syncPreferences() {
   if (!desktop) {
     $('#setting-pinned').disabled = true;
     $('#setting-login').disabled = true;
+    $('#setting-energy').disabled = true;
+    $('#setting-alerts').disabled = true;
+    $('#retry-sensors').disabled = true;
     $('#pin-setting-note').textContent = 'Available in the desktop app';
     $('#login-setting-note').textContent = 'Available in the desktop app';
   }
@@ -177,13 +215,33 @@ function setView(next) {
 async function toggleExpanded() {
   expanded = !expanded;
   if (desktop) { try { await window.weatherStation.setExpanded(expanded); } catch { toast('Could not change the window size. Please try again.'); } }
-  else { document.body.classList.toggle('widget-preview', !expanded); toast(expanded ? 'Full station view' : 'Widget preview · Expand from the top right'); }
+  else await savePreferences({ windowMode: expanded ? 'station' : 'widget' });
+}
+
+async function setWindowMode(mode) {
+  if (desktop) { try { await window.weatherStation.setWindowMode(mode); } catch { toast('Could not change window mode.'); } }
+  else await savePreferences({ windowMode: mode });
+}
+
+function renderDiagnostics() {
+  for (const type of ['gpu', 'fan']) {
+    const sensor = liveSnapshot?.sensors?.[type];
+    $(`#${type}-status`).textContent = sensor ? sensor.state[0].toUpperCase() + sensor.state.slice(1) : 'Preview only';
+    $(`#${type}-detail`).textContent = sensor?.detail || 'Live sensor diagnostics are available in the desktop app.';
+  }
+  const runtime = liveSnapshot?.runtime;
+  $('#power-status').textContent = runtime ? `${runtime.mode[0].toUpperCase() + runtime.mode.slice(1)} · CPU / memory every ${runtime.interval / 1000}s · GPU ${runtime.gpuInterval}s · Fan ${runtime.sensorInterval}s` : 'Browser preview uses demo readings.';
+  $('#notification-status').textContent = !desktop ? 'Desktop alerts are available in the Windows app.' : preferences.alertsEnabled ? liveSnapshot?.notificationStatus || 'Enabled · Windows notification settings apply' : 'Alerts are off. No background notices will be shown.';
 }
 
 function number(value, digits = 0) { return Number.isFinite(value) ? value.toLocaleString('en-US', { maximumFractionDigits: digits }) : '—'; }
 function time(timestamp) { return new Date(timestamp).toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' }); }
 function uptimeLabel(seconds) { if (!Number.isFinite(seconds)) return '—'; const hours = Math.floor(seconds / 3600); return hours > 24 ? `${Math.floor(hours / 24)}d ${hours % 24}h` : `${hours}h ${Math.floor(seconds % 3600 / 60)}m`; }
 function selectedHistory() { return histories[demo ? 'demo' : 'live']; }
+function sampleWeather(sample) {
+  const raw = deriveWeather(sample, preferences.source, preferences.stormThreshold);
+  return !demo && sample?.weather?.source === preferences.source ? { ...raw, ...WEATHER_STATES[sample.weather.id], ...sample.weather } : raw;
+}
 
 function makeDemo(weather = demoWeather, timestamp = Date.now()) {
   const sample = createDemoSnapshot(weather, preferences.source, timestamp);
@@ -228,12 +286,28 @@ function setDemo(weather) {
 }
 
 function render() {
-  const state = deriveWeather(snapshot, preferences.source, preferences.stormThreshold);
+  const reading = deriveWeather(snapshot, preferences.source, preferences.stormThreshold);
+  const stable = !demo && snapshot?.weather?.source === preferences.source ? snapshot.weather : null;
+  const state = stable ? { ...reading, ...WEATHER_STATES[stable.id], ...stable } : reading;
   const selected = snapshot?.[preferences.source];
   const load = Number.isFinite(selected?.usage) ? selected.usage : null;
   const mem = snapshot?.memory;
   const rpm = snapshot?.fan?.rpm;
   const weather = state.id;
+  const temperature = snapshot?.gpu?.temperature;
+  const hasTemperature = Number.isFinite(temperature);
+  $('#gpu-temperature').textContent = hasTemperature ? `${number(temperature)} °C` : '—';
+  $('#thermal-note').textContent = hasTemperature ? (demo ? 'Demo temperature' : 'NVIDIA GPU sensor') : 'Temperature unavailable on this sensor';
+  $('.thermal-strip').classList.toggle('is-hot', hasTemperature && temperature >= preferences.temperatureThreshold);
+  $('#mini-weather').textContent = state.label;
+  $('#mini-usage').textContent = formatPercent(load);
+  $('#mini-sensor').textContent = `${preferences.source.toUpperCase()} usage`;
+  $('#mini-source').textContent = preferences.source.toUpperCase();
+  $('#mini-memory').textContent = formatPercent(mem?.usage);
+  $('#mini-temperature').textContent = hasTemperature ? `${number(temperature)}°` : '—';
+  $('#mini-fan').textContent = Number.isFinite(rpm) ? `${number(rpm)} RPM` : '—';
+  $('#mini-mode-label').textContent = demo ? 'PREVIEW' : 'LIVE SKY';
+  renderDiagnostics();
   $('.weather-card').dataset.weather = weather;
   $('#weather-title').textContent = state.label;
   $('#weather-description').textContent = state.description;
@@ -275,7 +349,8 @@ function render() {
   $('.mini-tray .icon').outerHTML = icon(weatherIcon(weather));
   $('#updated-at').textContent = snapshot ? `${demo ? 'Preview data' : 'Updated'} ${time(snapshot.timestamp)}` : 'Awaiting the first reading';
   $$('[data-demo]').forEach(button => button.setAttribute('aria-pressed', String(demo && button.dataset.demo === demoWeather)));
-  updateWeatherScene($('.weather-scene'), weather, rpm ?? null, { reducedMotion: preferences.reducedMotion });
+  $$('.weather-scene').forEach(scene => updateWeatherScene(scene, weather, rpm ?? null, { reducedMotion: preferences.reducedMotion }));
+  if (preferences.windowMode === 'mini') return;
   renderChart();
   if (view === 'history') renderHistory();
 }
@@ -315,14 +390,14 @@ function renderHistory() {
   $('#history-mode').textContent = demo ? 'Preview data' : 'Live session';
   $('#export-history').disabled = !list.length;
   $('#history-rows').innerHTML = list.length ? list.slice(-30).reverse().map(sample => {
-    const state = deriveWeather(sample, preferences.source, preferences.stormThreshold);
+    const state = sampleWeather(sample);
     return `<tr><td>${time(sample.timestamp)}</td><td><span class="table-weather ${state.id}">${icon(weatherIcon(state.id))}${state.label}</span></td><td>${formatPercent(sample.cpu?.usage)}</td><td>${formatPercent(sample.gpu?.usage)}</td><td>${formatPercent(sample.memory?.usage)}</td><td>${number(sample.fan?.rpm)}</td></tr>`;
   }).join('') : '<tr><td colspan="6" class="empty-records">No readings yet. Your sky will leave a trail here.</td></tr>';
 }
 
 function exportHistory() {
-  const rows = [['Mode','Time','Weather source','Weather','CPU (%)','GPU (%)','Memory (%)','Memory used (GB)','Memory total (GB)','Fan (RPM)']];
-  for (const sample of selectedHistory()) rows.push([demo ? 'preview' : 'live',new Date(sample.timestamp).toISOString(),preferences.source.toUpperCase(),deriveWeather(sample,preferences.source,preferences.stormThreshold).label,sample.cpu?.usage,sample.gpu?.usage,sample.memory?.usage,sample.memory?.usedGB,sample.memory?.totalGB,sample.fan?.rpm]);
+  const rows = [['Mode','Time','Weather source','Weather','CPU (%)','GPU (%)','Memory (%)','Memory used (GB)','Memory total (GB)','Fan (RPM)','GPU temperature (C)']];
+  for (const sample of selectedHistory()) rows.push([demo ? 'preview' : 'live',new Date(sample.timestamp).toISOString(),preferences.source.toUpperCase(),sampleWeather(sample).label,sample.cpu?.usage,sample.gpu?.usage,sample.memory?.usage,sample.memory?.usedGB,sample.memory?.totalGB,sample.fan?.rpm,sample.gpu?.temperature]);
   const text = '\uFEFF' + rows.map(row => row.map(v=>`"${String(v ?? '').replaceAll('"','""')}"`).join(',')).join('\r\n');
   const url = URL.createObjectURL(new Blob([text], {type:'text/csv;charset=utf-8'}));
   const a = document.createElement('a'); a.href = url; a.download = `Cirrus-${demo ? 'preview' : 'live'}-${new Date().toISOString().slice(0,10)}.csv`; a.click(); setTimeout(()=>URL.revokeObjectURL(url),5000);
@@ -353,12 +428,42 @@ $('#setting-threshold').addEventListener('change', event=>savePreferences({storm
 $('#setting-motion').addEventListener('change', event=>savePreferences({reducedMotion:event.target.checked}));
 $('#setting-pinned').addEventListener('change', event=>savePreferences({pinned:event.target.checked}));
 $('#setting-login').addEventListener('change', event=>savePreferences({launchAtLogin:event.target.checked}));
+$('#mini-button').addEventListener('click', () => setWindowMode('mini'));
+$('#mini-open').addEventListener('click', () => { setView('overview'); setWindowMode('station'); });
+$('#mini-hide').addEventListener('click', () => desktop ? window.weatherStation.hide() : setWindowMode('widget'));
+$('#mini-source').addEventListener('click', () => savePreferences({ source: preferences.source === 'cpu' ? 'gpu' : 'cpu' }));
+$('#setting-mode').addEventListener('change', event => setWindowMode(event.target.value));
+$('#setting-energy').addEventListener('change', event => savePreferences({ energySaving: event.target.checked }));
+$('#setting-smoothing').addEventListener('change', event => savePreferences({ smoothWeather: event.target.checked }));
+$('#setting-alerts').addEventListener('change', event => savePreferences({ alertsEnabled: event.target.checked }));
+$('#setting-alert-duration').addEventListener('change', event => savePreferences({ alertDuration: Number(event.target.value) }));
+$('#setting-temperature').addEventListener('change', event => savePreferences({ temperatureThreshold: Number(event.target.value) }));
+$('#retry-sensors').addEventListener('click', async () => { try { const started = await window.weatherStation.retrySensors(); toast(started ? 'Reconnecting sensors. Readings will return automatically.' : 'Please wait a few seconds before reconnecting again.'); } catch { toast('Could not reconnect sensors.'); } });
+
+async function changeActivity(nextActive) {
+  active = nextActive;
+  document.body.classList.toggle('inactive', !active);
+  const generation = ++activityGeneration;
+  if (active && desktop) {
+    try {
+      const [samples, latest] = await Promise.all([window.weatherStation.getHistory(), window.weatherStation.getSnapshot()]);
+      if (generation !== activityGeneration || !active) return;
+      histories.live = samples;
+      liveSnapshot = latest;
+      addSample(latest, 'live');
+      if (!demo) snapshot = latest;
+      render();
+    } catch { toast('Could not refresh readings. Reopen the widget to retry.'); }
+  } else if (active) render();
+}
+document.addEventListener('visibilitychange', () => changeActivity(!document.hidden));
 
 async function init() {
   if (desktop) {
     try {
       preferences = { ...defaults, ...await window.weatherStation.getPreferences() };
-      window.weatherStation.onSnapshot(sample => { liveSnapshot = sample; addSample(sample,'live'); if (!demo) {snapshot = sample; render();} });
+      window.weatherStation.onSnapshot(sample => { liveSnapshot = sample; addSample(sample,'live'); if (!demo) snapshot = sample; if (active) { if (!demo) render(); else renderDiagnostics(); } });
+      window.weatherStation.onActivity(({ active: nextActive }) => changeActivity(nextActive));
       window.weatherStation.onPreferences?.(next => {
         const resetDemo = preferences.source !== next.source || preferences.stormThreshold !== next.stormThreshold;
         preferences = {...defaults,...next};
@@ -366,6 +471,7 @@ async function init() {
         syncPreferences();
         render();
       });
+      histories.live = await window.weatherStation.getHistory();
       liveSnapshot = await window.weatherStation.getSnapshot();
       snapshot = liveSnapshot;
       addSample(snapshot, 'live');
@@ -374,7 +480,7 @@ async function init() {
   syncPreferences();
   render();
   previewInterval = setInterval(() => {
-    if (!demo || Date.now()-lastSampleTime < preferences.refreshInterval) return;
+    if (!active || !demo || Date.now()-lastSampleTime < preferences.refreshInterval) return;
     lastSampleTime = Date.now();
     snapshot = makeDemo(demoWeather);
 

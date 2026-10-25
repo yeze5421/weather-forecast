@@ -2,7 +2,7 @@
 
 ## Runtime requirements
 
-Cirrus 1.1.0 targets Windows 10 / 11 x64. Electron bundles Chromium, Node.js and the application code. End users need no additional development runtime, account, API key, server or weather service. Normal observations work offline.
+Cirrus 1.2.0 targets Windows 10 / 11 x64. Electron bundles Chromium, Node.js and the application code. End users need no additional development runtime, account, API key, server or weather service. Normal observations work offline.
 
 | Feature | Source and requirements |
 | --- | --- |
@@ -15,9 +15,9 @@ Cirrus itself installs no drivers, changes no fan settings, and requires no admi
 
 Development requires Node.js 22.12+, npm and network access to download dependencies. Use `npm ci`, `npm test` and `npm run dist` on Windows. If the official Electron distribution is already available locally, `npm run dist -- --config.electronDist=node_modules/electron/dist` can reuse it.
 
-## Commit the dark themes edition
+## Commit the quieter desktop edition
 
-The repository is [yeze5421/weather-forecast](https://github.com/yeze5421/weather-forecast). Versions 1.0.0 and 1.0.1 are already published; the dark themes edition uses **1.1.0**.
+The repository is [yeze5421/weather-forecast](https://github.com/yeze5421/weather-forecast). Versions 1.0.0, 1.0.1 and 1.1.0 are already published; the quieter desktop edition uses **1.2.0**.
 
 From the project directory:
 
@@ -25,34 +25,46 @@ From the project directory:
 git add -A
 git diff --cached --stat
 git diff --cached --name-only
-git commit -m "Add dark themes and prepare v1.1.0"
+git commit -m "Upgrade desktop runtime and prepare v1.2.0"
 git push
 ```
 
-Review the staged files before committing. `git add -A` records new theme files and the demo GIF as well as file edits. A normal Git push uploads source code; it does not upload the ignored executable or create a Release.
+Review the staged files before committing. A normal Git push uploads source and triggers a build; it does not create a public Release until a version tag is pushed.
 
-## Publish the executable
+## Automated Windows builds and releases
 
-The local build produces `release/Cirrus-Weather-1.1.0.exe` and a matching `release/SHA256.txt`. After pushing the source commit, create a new Release:
+The workflow in .github/workflows/windows.yml runs on pushes to main, pull requests and manual dispatch. It installs the locked dependencies, runs unit and desktop integration tests, builds a portable EXE, tests the unpacked build, generates SHA256.txt and verifies the packaged sources against the checkout. Build artifacts contain only the EXE, checksum and release notes, with fourteen-day retention.
 
-```powershell
-gh release create v1.1.0 "release/Cirrus-Weather-1.1.0.exe" "release/SHA256.txt" --repo yeze5421/weather-forecast --target main --title "Cirrus v1.1.0 - Dark Themes" --notes-file RELEASE_NOTES.md
-```
+A tag matching package.json publishes the tested artifact in a public GitHub Release. The publication job alone receives contents: write; the build job has contents: read and no signing secrets. Actions are pinned to their verified commit SHAs. The workflow refuses to replace an existing release.
 
-GitHub attaches the executable and checksum file, and creates source archives for the tagged commit. Download links will appear at `https://github.com/yeze5421/weather-forecast/releases/tag/v1.1.0`. Keep each published version's executable and checksum together; build a new version instead of replacing an older release's binary.
-
-If rebuilding before publication, refresh the checksum:
+After committing and pushing a new version:
 
 ```powershell
-$cirrusHash = (Get-FileHash -LiteralPath "release/Cirrus-Weather-1.1.0.exe" -Algorithm SHA256).Hash.ToLowerInvariant()
-"$cirrusHash  Cirrus-Weather-1.1.0.exe" | Set-Content -LiteralPath "release/SHA256.txt" -Encoding utf8
+git tag v1.2.0
+git push origin v1.2.0
+gh run list --workflow windows.yml
 ```
 
-The executable is currently **unsigned**. Windows may show an unknown publisher or SmartScreen prompt. Configure Windows code signing for a formal distribution if needed; keep certificates, private keys and passwords outside the repository. Signing does not guarantee that every system prompt disappears.
+Wait for the tagged workflow to succeed. The public download appears on the Releases page. Regular main-branch builds are workflow artifacts; downloading them requires GitHub access, while published Release attachments are public.
+
+For a local build:
+
+```powershell
+npm ci
+npm test
+npm run test:desktop
+npm run dist -- --config.electronDist=node_modules/electron/dist
+npm run release:checksum
+npm run release:verify
+```
+
+A manual fallback may create a Release with gh release create, using the exact versioned EXE, matching SHA256.txt and RELEASE_NOTES.md. Do not publish the whole release directory. Do not run manual publication concurrently with tagged automatic publication.
+
+The executable remains unsigned. No signing certificate or paid service is required for this workflow. Windows can display an unknown publisher or SmartScreen prompt. Future signing credentials must remain outside the repository.
 
 ## Public file scope
 
-Commit first-party source, tests, scripts, `public/favicon.svg`, `shared/themes.json`, `docs/cirrus-preview.gif`, the two application icons in `build/`, manifests, the lockfile, documentation, `Launch-Cirrus.cmd` and `LICENSE`.
+Commit first-party source, tests, scripts, `public/favicon.svg`, `shared/`, the demo GIF and mini preview in `docs/`, the two application icons in `build/`, the workflow in `.github/`, manifests, the lockfile, documentation, `Launch-Cirrus.cmd` and `LICENSE`.
 
 Release assets should contain only the portable executable and its checksum file. Exclude `node_modules/`, `dist/`, `artifacts/`, `publish/`, the rest of `release/`, browser profiles, exported CSVs, screenshots, logs, `builder-debug.yml`, environment files and signing material.
 

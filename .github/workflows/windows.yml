@@ -1,0 +1,79 @@
+name: Windows build and release
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run test:desktop
+      - run: npm run dist -- --config.electronDist=node_modules/electron/dist
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - name: Test the packaged desktop
+        shell: pwsh
+        run: |
+          $env:WEATHER_STATION_SMOKE_EXECUTABLE = Join-Path $PWD 'release/win-unpacked/Cirrus.exe'
+          node scripts/smoke-desktop.cjs
+      - run: npm run release:checksum
+      - run: npm run release:verify
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: Cirrus-Windows-${{ github.sha }}
+          path: |
+            release/Cirrus-Weather-*.exe
+            release/SHA256.txt
+            RELEASE_NOTES.md
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: build
+    runs-on: windows-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - name: Download the tested artifact and publish
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_COMMIT: ${{ github.sha }}
+          BUILD_RUN: ${{ github.run_id }}
+        run: |
+          gh run download $env:BUILD_RUN --name "Cirrus-Windows-$env:RELEASE_COMMIT" --dir bundle
+          if ($LASTEXITCODE -ne 0) { throw 'Could not download the tested build' }
+          $manifest = Get-Content -LiteralPath bundle/release/SHA256.txt -Raw
+          $parts = $manifest.Trim() -split '\s+'
+          $executable = Join-Path 'bundle/release' $parts[1]
+          if ((Get-FileHash -LiteralPath $executable -Algorithm SHA256).Hash -ine $parts[0]) { throw 'Downloaded checksum mismatch' }
+          gh release view $env:RELEASE_TAG *> $null
+          if ($LASTEXITCODE -eq 0) { throw 'This version is already published. Release a new version instead of replacing assets.' }
+          gh release create $env:RELEASE_TAG $executable bundle/release/SHA256.txt --verify-tag --target $env:RELEASE_COMMIT --title "Cirrus $env:RELEASE_TAG - A Quieter Sky" --notes-file bundle/RELEASE_NOTES.md --latest
+          if ($LASTEXITCODE -ne 0) { throw 'Release publication failed' }

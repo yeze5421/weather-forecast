@@ -2,7 +2,7 @@
 
 **A Windows tray widget that turns CPU/GPU load into animated weather, high memory use into thunderstorms, and fan speed into wind — entirely offline.**
 
-**[Download for Windows — portable .exe](https://github.com/yeze5421/weather-forecast/releases/download/v1.1.0/Cirrus-Weather-1.1.0.exe)** · [SHA-256](https://github.com/yeze5421/weather-forecast/releases/download/v1.1.0/SHA256.txt) · [Release notes](https://github.com/yeze5421/weather-forecast/releases/tag/v1.1.0)
+**[Download for Windows — portable .exe](https://github.com/yeze5421/weather-forecast/releases/download/v1.2.0/Cirrus-Weather-1.2.0.exe)** · [SHA-256](https://github.com/yeze5421/weather-forecast/releases/download/v1.2.0/SHA256.txt) · [Release notes](https://github.com/yeze5421/weather-forecast/releases/tag/v1.2.0)
 
 Windows 10 / 11 · x64 · No installation or account required · MIT License
 
@@ -14,11 +14,12 @@ Windows 10 / 11 · x64 · No installation or account required · MIT License
 
 **[Download the latest release](https://github.com/yeze5421/weather-forecast/releases/latest)** for Windows 10 / 11 x64. Download the `.exe` attachment and double-click it. Node.js, Python, .NET, accounts, API keys and servers are not required.
 
-This checkout is **1.1.0**, the dark themes edition. Its local portable build is `release/Cirrus-Weather-1.1.0.exe`; `Launch-Cirrus.cmd` opens the most recently built portable executable. GitHub's automatic Source code archives contain source files and require the development setup below.
+This checkout is **1.2.0 — A Quieter Sky**. Its local portable build is `release/Cirrus-Weather-1.2.0.exe`; `Launch-Cirrus.cmd` opens the most recently built portable executable. GitHub's automatic Source code archives contain source files and require the development setup below.
 
 - Left-click the tray weather icon to open or hide the widget.
 - Right-click to select CPU / GPU weather, toggle Always on top, or Quit Cirrus.
 - Use the expand button to switch between the widget and full station view.
+- Use the monitor button or the tray's Window mode menu for the **320 × 210 mini desktop**. Drag its header to reposition it; the position and mode survive a restart. The mini stays open when it loses focus. Its expand button opens the full station.
 - Closing the window hides it to the tray. Use Quit Cirrus to exit completely.
 - Windows may place the tray icon under Show hidden icons.
 
@@ -38,13 +39,25 @@ The current executable is unsigned. Windows may show an unknown publisher or Sma
 
 Fan RPM controls the windmill and wind animation. Missing RPM readings leave the windmill still and the value blank. Weather describes current computer activity; it does not predict future load or real-world weather.
 
+**Smooth weather** is on by default. Live skies use readings from the last six seconds, a four-second change hold and a three-point recovery margin. Memory storms take priority after a three-second hold; once a storm starts, memory must fall at least three percentage points below the threshold before recovery begins. The first available reading initializes the sky immediately. Numeric readings and history remain raw. Turning smoothing off uses the table directly; Preview always changes immediately. The tray and window share the same live weather state.
+
+## A quieter desktop companion
+
+- **Energy saving:** visible CPU / memory readings follow your chosen interval. Background and battery modes use at least five seconds; a locked screen uses at least fifteen seconds. NVIDIA polling changes from four seconds to ten / thirty seconds, and fan / fallback polling from ten seconds to fifteen / thirty seconds. Windows fallback GPU polling follows the fan service interval.
+- Hidden windows receive no periodic reading pushes and their animations pause. Session history continues in the main process and refreshes when you reopen the window. During sleep, sensor processes stop; wake reconnects them and discards old readings. Energy saving can be disabled; hidden rendering remains paused.
+- **Sensor health** in Settings explains missing, stale, disconnected or blocked sensors. Failed processes retry with a capped backoff; unresponsive processes are restarted. Reconnect offers a manual retry, limited to once per ten seconds. Fan readings still require compatible hardware and an available WMI provider.
+- **GPU temperature** appears in the overview and mini footer when NVIDIA supplies a reading, and in CSV exports. Other GPU sources leave temperature blank. CPU temperature is not collected.
+- **Quiet alerts** are off by default. Enable them in Settings for selected CPU / GPU load at or above 90%, memory at the storm threshold, or GPU temperature at a chosen threshold (85 °C by default). Conditions must persist for 30, 60 or 120 seconds; every alert kind has a fifteen-minute cooldown. Alerts use live data only and are suppressed while the screen is locked. Windows notification settings may suppress delivery. No notification or reading is uploaded.
+
+![Cirrus mini desktop using labeled demo readings](docs/mini-desktop.png)
+
 ## Hardware and data
 
 - **CPU / memory:** actual system readings. CPU utilization needs one sampling interval before its first value.
-- **NVIDIA GPU:** the driver's `nvidia-smi`, sampled every four seconds. With multiple NVIDIA GPUs, Cirrus selects the busiest adapter.
-- **Other Windows GPUs:** Windows GPU performance counters, sampled every ten seconds, using the busiest physical engine. Unsupported drivers leave the reading unavailable.
+- **NVIDIA GPU:** the driver's `nvidia-smi`, sampled every four seconds in active mode. With multiple NVIDIA GPUs, Cirrus selects the busiest adapter.
+- **Other Windows GPUs:** Windows GPU performance counters, sampled every ten seconds in active mode, using the busiest physical engine. Unsupported drivers leave the reading unavailable.
 - **Fan RPM:** WMI `Fan` sensors exposed by a running LibreHardwareMonitor / OpenHardwareMonitor instance. The highest available RPM is used. Availability depends on the hardware, provider and permissions. Cirrus installs no drivers and does not control fans. GPU fan percentages are not treated as RPM.
-- The sampling setting controls CPU / memory and UI updates. GPU / fan sampling uses the separate intervals above.
+- The sampling setting controls CPU / memory and UI updates. GPU / fan sampling uses the separate intervals above, adjusted by Energy saving.
 - Preferences and readings stay on this computer. There is no account, remote API, telemetry upload or automatic update service in the application code.
 - History retains the last 30 minutes of the current session and clears on exit. CSV export is an explicit user action. Preview and live records are kept separately.
 
@@ -89,7 +102,7 @@ Preferences live in `preferences.json` under the current user's Cirrus applicati
 
 ## Update GitHub
 
-Updating the repository and publishing a new executable are separate operations. Git ignores `release/`, so a normal push updates source files only. See [PUBLISHING.md](PUBLISHING.md) for the exact commands to commit 1.1.0 and create its Release, and [RELEASE_NOTES.md](RELEASE_NOTES.md) for the current release notes.
+The Windows workflow tests and builds pushes to `main`, pull requests and manual runs. Push a matching version tag, such as `v1.2.0`, to run the same checks, test the packaged desktop, generate SHA-256 and publish the tested EXE as a GitHub Release. A normal push creates a downloadable workflow artifact; a version tag publishes a public Release. Only the EXE, checksum and release notes enter the build artifact. See [PUBLISHING.md](PUBLISHING.md) and [RELEASE_NOTES.md](RELEASE_NOTES.md).
 
 Local `artifacts/` contains hardware test readings, screenshots and browser profiles. Build diagnostics in `release/` may include local paths. These directories are excluded from Git and must not be uploaded as a whole.
 

@@ -1,6 +1,6 @@
 {
   "name": "cirrus-weather-station",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Cirrus · Turn computer activity into weather",
   "author": "Cirrus",
   "license": "MIT",
@@ -15,7 +15,9 @@
     "test": "node --test tests/*.test.js",
     "test:desktop": "npm run build && node scripts/smoke-desktop.cjs",
     "pack": "npm run build && electron-builder --win --dir",
-    "dist": "npm run build && electron-builder --win portable"
+    "dist": "npm run build && electron-builder --win portable",
+    "release:checksum": "node scripts/release-checksum.cjs",
+    "release:verify": "node scripts/verify-release.cjs"
   },
   "devDependencies": {
     "electron": "45.0.0",
@@ -32,12 +34,15 @@
     "files": [
       "dist/**/*",
       "electron/**/*",
-      "shared/themes.json",
+      "shared/**/*",
+      "build/icon.png",
       "package.json",
       "LICENSE"
     ],
     "asar": true,
-    "asarUnpack": ["electron/sensors.ps1"],
+    "asarUnpack": [
+      "electron/sensors.ps1"
+    ],
     "win": {
       "target": "portable",
       "icon": "build/icon.ico",
