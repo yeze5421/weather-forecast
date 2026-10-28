@@ -2,7 +2,7 @@
 
 **A Windows tray widget that turns CPU/GPU load into animated weather, high memory use into thunderstorms, and fan speed into wind — entirely offline.**
 
-**[Download for Windows — portable .exe](https://github.com/yeze5421/weather-forecast/releases/download/v1.2.0/Cirrus-Weather-1.2.0.exe)** · [SHA-256](https://github.com/yeze5421/weather-forecast/releases/download/v1.2.0/SHA256.txt) · [Release notes](https://github.com/yeze5421/weather-forecast/releases/tag/v1.2.0)
+**[Download for Windows — portable .exe](https://github.com/yeze5421/weather-forecast/releases/download/v1.2.1/Cirrus-Weather-1.2.1.exe)** · [SHA-256](https://github.com/yeze5421/weather-forecast/releases/download/v1.2.1/SHA256.txt) · [Release notes](https://github.com/yeze5421/weather-forecast/releases/tag/v1.2.1)
 
 Windows 10 / 11 · x64 · No installation or account required · MIT License
 
@@ -14,7 +14,7 @@ Windows 10 / 11 · x64 · No installation or account required · MIT License
 
 **[Download the latest release](https://github.com/yeze5421/weather-forecast/releases/latest)** for Windows 10 / 11 x64. Download the `.exe` attachment and double-click it. Node.js, Python, .NET, accounts, API keys and servers are not required.
 
-This checkout is **1.2.0 — A Quieter Sky**. Its local portable build is `release/Cirrus-Weather-1.2.0.exe`; `Launch-Cirrus.cmd` opens the most recently built portable executable. GitHub's automatic Source code archives contain source files and require the development setup below.
+This checkout is **1.2.1 — Fan RPM Fix**. Its local portable build is `release/Cirrus-Weather-1.2.1.exe`; `Launch-Cirrus.cmd` opens the most recently built portable executable. GitHub's automatic Source code archives contain source files and require the development setup below.
 
 - Left-click the tray weather icon to open or hide the widget.
 - Right-click to select CPU / GPU weather, toggle Always on top, or Quit Cirrus.
@@ -45,7 +45,7 @@ Fan RPM controls the windmill and wind animation. Missing RPM readings leave the
 
 - **Energy saving:** visible CPU / memory readings follow your chosen interval. Background and battery modes use at least five seconds; a locked screen uses at least fifteen seconds. NVIDIA polling changes from four seconds to ten / thirty seconds, and fan / fallback polling from ten seconds to fifteen / thirty seconds. Windows fallback GPU polling follows the fan service interval.
 - Hidden windows receive no periodic reading pushes and their animations pause. Session history continues in the main process and refreshes when you reopen the window. During sleep, sensor processes stop; wake reconnects them and discards old readings. Energy saving can be disabled; hidden rendering remains paused.
-- **Sensor health** in Settings explains missing, stale, disconnected or blocked sensors. Failed processes retry with a capped backoff; unresponsive processes are restarted. Reconnect offers a manual retry, limited to once per ten seconds. Fan readings still require compatible hardware and an available WMI provider.
+- **Sensor health** in Settings explains missing, stale, disconnected or blocked sensors. Failed processes retry with a capped backoff; unresponsive processes are restarted. Reconnect offers a manual retry, limited to once per ten seconds. Fan readings still require a supported driver or a compatible hardware provider.
 - **GPU temperature** appears in the overview and mini footer when NVIDIA supplies a reading, and in CSV exports. Other GPU sources leave temperature blank. CPU temperature is not collected.
 - **Quiet alerts** are off by default. Enable them in Settings for selected CPU / GPU load at or above 90%, memory at the storm threshold, or GPU temperature at a chosen threshold (85 °C by default). Conditions must persist for 30, 60 or 120 seconds; every alert kind has a fifteen-minute cooldown. Alerts use live data only and are suppressed while the screen is locked. Windows notification settings may suppress delivery. No notification or reading is uploaded.
 
@@ -56,12 +56,21 @@ Fan RPM controls the windmill and wind animation. Missing RPM readings leave the
 - **CPU / memory:** actual system readings. CPU utilization needs one sampling interval before its first value.
 - **NVIDIA GPU:** the driver's `nvidia-smi`, sampled every four seconds in active mode. With multiple NVIDIA GPUs, Cirrus selects the busiest adapter.
 - **Other Windows GPUs:** Windows GPU performance counters, sampled every ten seconds in active mode, using the busiest physical engine. Unsupported drivers leave the reading unavailable.
-- **Fan RPM:** WMI `Fan` sensors exposed by a running LibreHardwareMonitor / OpenHardwareMonitor instance. The highest available RPM is used. Availability depends on the hardware, provider and permissions. Cirrus installs no drivers and does not control fans. GPU fan percentages are not treated as RPM.
+- **Fan RPM:** compatible WMI fan sensors take priority. If they are unavailable, Cirrus reads supported NVIDIA GPU fan RPM directly through the existing driver's NVML interface. No extra monitor is needed for supported NVIDIA devices. The fastest available reading is used; the UI identifies GPU fans explicitly. Other hardware still needs a compatible sensor provider. Cirrus installs no drivers, changes no fan settings and never converts a fan percentage into RPM.
 - The sampling setting controls CPU / memory and UI updates. GPU / fan sampling uses the separate intervals above, adjusted by Energy saving.
 - Preferences and readings stay on this computer. There is no account, remote API, telemetry upload or automatic update service in the application code.
 - History retains the last 30 minutes of the current session and clears on exit. CSV export is an explicit user action. Preview and live records are kept separately.
 
 ## Make it yours
+
+### If the windmill stays still
+
+- A missing reading means no supported RPM source is connected. A measured **0 RPM** means the reported fan is stopped; both leave the windmill still.
+- Supported NVIDIA GPUs are detected automatically through the installed driver. The caption says **GPU fan · NVIDIA**, and Sensor health identifies the adapter / fan and number of available fan sensors. This is a GPU fan reading, not a CPU fan reading. NVML reports driver-provided operating RPM; it does not prove that an obstructed physical fan is spinning.
+- CPU, case and non-NVIDIA fans need a compatible hardware provider. Recent **LibreHardwareMonitor 0.9.5+ removed WMI**; merely running that version will not supply the WMI data this application supports. See the [maintainer's explanation](https://github.com/LibreHardwareMonitor/LibreHardwareMonitor/issues/2143). Cirrus does not enable its web server or expose a network listener.
+- **Preview → Heavy rain** supplies clearly labeled demo RPM and rotates the windmill without changing hardware settings. **Reduce motion**, including the Windows motion preference, deliberately pauses the animation.
+
+## Themes
 
 Choose **Midnight**, **Obsidian**, **Forest**, **Ember** or **Daylight** in Settings → Appearance, or from the tray menu. Each theme colors the whole interface, charts, clouds and landscape. Your choice is saved locally and restored on the next launch. Midnight is the default.
 
@@ -102,7 +111,7 @@ Preferences live in `preferences.json` under the current user's Cirrus applicati
 
 ## Update GitHub
 
-The Windows workflow tests and builds pushes to `main`, pull requests and manual runs. Push a matching version tag, such as `v1.2.0`, to run the same checks, test the packaged desktop, generate SHA-256 and publish the tested EXE as a GitHub Release. A normal push creates a downloadable workflow artifact; a version tag publishes a public Release. Only the EXE, checksum and release notes enter the build artifact. See [PUBLISHING.md](PUBLISHING.md) and [RELEASE_NOTES.md](RELEASE_NOTES.md).
+The Windows workflow tests and builds pushes to `main`, pull requests and manual runs. Push a matching version tag, such as `v1.2.1`, to run the same checks, test the packaged desktop, generate SHA-256 and publish the tested EXE as a GitHub Release. A normal push creates a downloadable workflow artifact; a version tag publishes a public Release. Only the EXE, checksum and release notes enter the build artifact. See [PUBLISHING.md](PUBLISHING.md) and [RELEASE_NOTES.md](RELEASE_NOTES.md).
 
 Local `artifacts/` contains hardware test readings, screenshots and browser profiles. Build diagnostics in `release/` may include local paths. These directories are excluded from Git and must not be uploaded as a whole.
 

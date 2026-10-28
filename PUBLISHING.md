@@ -2,14 +2,14 @@
 
 ## Runtime requirements
 
-Cirrus 1.2.0 targets Windows 10 / 11 x64. Electron bundles Chromium, Node.js and the application code. End users need no additional development runtime, account, API key, server or weather service. Normal observations work offline.
+Cirrus 1.2.1 targets Windows 10 / 11 x64. Electron bundles Chromium, Node.js and the application code. End users need no additional development runtime, account, API key, server or weather service. Normal observations work offline.
 
 | Feature | Source and requirements |
 | --- | --- |
 | CPU / memory | Built-in Node.js system interfaces; no additional monitoring software |
 | NVIDIA GPU | Driver-provided `nvidia-smi`, with a Windows performance counter fallback |
 | Other GPUs | Windows PowerShell / CIM performance counters; support depends on the system and driver |
-| Fan RPM | Optional: a running LibreHardwareMonitor / OpenHardwareMonitor instance exposing WMI Fan sensors; availability depends on hardware and permissions |
+| Fan RPM | Compatible WMI fan sensors, or direct NVIDIA NVML RPM through an existing driver; recent LibreHardwareMonitor 0.9.5+ no longer exposes WMI |
 
 Cirrus itself installs no drivers, changes no fan settings, and requires no administrator privileges for basic observations. Device policies may restrict PowerShell, hardware queries or unsigned applications. macOS, Linux and Windows ARM64 distributions have not been validated.
 
@@ -17,7 +17,7 @@ Development requires Node.js 22.12+, npm and network access to download dependen
 
 ## Commit the quieter desktop edition
 
-The repository is [yeze5421/weather-forecast](https://github.com/yeze5421/weather-forecast). Versions 1.0.0, 1.0.1 and 1.1.0 are already published; the quieter desktop edition uses **1.2.0**.
+The repository is [yeze5421/weather-forecast](https://github.com/yeze5421/weather-forecast). Versions 1.0.0, 1.0.1 and 1.1.0 are already published; the quieter desktop edition uses **1.2.1**.
 
 From the project directory:
 
@@ -25,7 +25,7 @@ From the project directory:
 git add -A
 git diff --cached --stat
 git diff --cached --name-only
-git commit -m "Upgrade desktop runtime and prepare v1.2.0"
+git commit -m "Upgrade desktop runtime and prepare v1.2.1"
 git push
 ```
 
@@ -40,8 +40,8 @@ A tag matching package.json publishes the tested artifact in a public GitHub Rel
 After committing and pushing a new version:
 
 ```powershell
-git tag v1.2.0
-git push origin v1.2.0
+git tag v1.2.1
+git push origin v1.2.1
 gh run list --workflow windows.yml
 ```
 

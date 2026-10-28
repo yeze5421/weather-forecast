@@ -330,9 +330,12 @@ function render() {
   $('#cpu-caption').title = selected?.name || '';
   $('#memory-caption').textContent = mem ? `${number(mem.usedGB, 1)} / ${number(mem.totalGB, 1)} GB` : 'Awaiting data';
   $('#memory-caption').classList.toggle('warning-text', (mem?.usage ?? 0) >= preferences.stormThreshold);
-  $('#wind-caption').textContent = Number.isFinite(rpm) ? (rpm === 0 ? 'Still air' : rpm < 1500 ? 'Light breeze' : rpm < 2500 ? 'Steady breeze' : 'Wind picking up') : 'Awaiting wind';
-  $('#fan-caption').textContent = Number.isFinite(rpm) ? (demo ? 'Demo sensor' : snapshot.fan.source || 'RPM sensor') : 'RPM unavailable';
+  $('#wind-caption').textContent = Number.isFinite(rpm) ? (rpm === 0 ? 'Fan stopped' : rpm < 1500 ? 'Light breeze' : rpm < 2500 ? 'Steady breeze' : 'Wind picking up') : 'No RPM source';
+  $('#fan-caption').textContent = Number.isFinite(rpm) ? (demo ? 'Demo sensor' : snapshot.fan.kind === 'gpu' ? 'GPU fan · NVIDIA' : snapshot.fan.source || 'RPM sensor') : 'See Settings · Sensor health';
+  $('#fan-caption').title = demo ? 'Demonstration readings' : snapshot?.sensors?.fan?.detail || 'No fan RPM sensor is connected.';
+  $('#mini-fan').title = demo ? 'Demonstration readings' : snapshot?.sensors?.fan?.detail || 'No fan RPM sensor is connected.';
   $('.fan-icon').style.animationDuration = Number.isFinite(rpm) && rpm > 0 ? `${Math.max(.4, 2400 / rpm)}s` : '0s';
+  $('.fan-icon').style.animationPlayState = Number.isFinite(rpm) && rpm > 0 ? 'running' : 'paused';
   $('#weather-state-icon').innerHTML = icon(weatherIcon(weather));
   $('#current-source').textContent = `${preferences.source.toUpperCase()} load`;
   $('#uptime').textContent = uptimeLabel(snapshot?.uptime);

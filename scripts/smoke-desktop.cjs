@@ -110,6 +110,21 @@ async function launch() {
   await page.locator('#return-live').click();
   assert.equal(await page.locator('#connection-label').textContent(), 'Live');
   check('rain and storm previews are labelled and return to live');
+  await page.evaluate(() => window.weatherStation.savePreferences({ reducedMotion: false }));
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.locator('#preview-toggle').click();
+  await page.locator('[data-demo="rainy"]').click();
+  await page.waitForFunction(() => document.querySelector('.weather-card .weather-scene').dataset.wind === 'moving');
+  const rotor = page.locator('.weather-card .ws-fan-rotor');
+  const beforeRotation = await rotor.evaluate(element => getComputedStyle(element).transform);
+  await page.waitForTimeout(300);
+  const afterRotation = await rotor.evaluate(element => getComputedStyle(element).transform);
+  assert.notEqual(beforeRotation, afterRotation, 'A positive RPM must visibly rotate the windmill');
+  assert.equal(await page.locator('#fan-value').textContent(), '2,460');
+  await page.evaluate(() => window.weatherStation.savePreferences({ reducedMotion: true }));
+  await page.locator('#preview-toggle').click();
+  await page.locator('#return-live').click();
+  check('positive fan RPM rotates the actual windmill and reduce-motion remains available');
 
   await page.locator('[data-source="gpu"]').click();
   await page.waitForFunction(() => document.querySelector('#hero-source').textContent === 'GPU');

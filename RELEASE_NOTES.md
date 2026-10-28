@@ -1,21 +1,13 @@
-# Cirrus v1.2.0 — A Quieter Sky
+# Cirrus v1.2.1 — Fan RPM Fix
 
-An offline Windows tray companion that turns CPU/GPU activity into weather, memory pressure into thunderstorms and fan RPM into wind.
+Fix the stationary windmill on supported NVIDIA systems that have no WMI fan provider.
 
-- Add a draggable 320 × 210 mini desktop with saved position, saved mode and one-click CPU/GPU switching.
-- Reduce polling in the background, on battery and while locked. Pause hidden rendering; keep the last 30 minutes of session history available on reopening.
-- Stop sensor workers during sleep and reconnect on wake. Supervise failed and unresponsive workers with automatic retries.
-- Add Sensor health explanations and a rate-limited Reconnect button in Settings.
-- Share smoothed live weather between the tray and window, with a short hold and recovery margin. Raw readings stay unchanged; smoothing can be disabled.
-- Show supported NVIDIA GPU temperatures in the overview, mini footer and CSV exports.
-- Add optional sustained load, memory and GPU temperature notifications, with configurable duration and temperature threshold and a fifteen-minute cooldown per kind. Notifications are off by default and never use Preview data.
-- Add Windows CI that tests source and packaged builds, verifies package contents and checksums, and publishes version tags automatically.
-- Keep all five themes, the English interface, portable distribution and MIT license.
+- Read GPU fan RPM directly through the installed NVIDIA driver using the read-only NVML interface. No additional monitoring application or driver installation is needed on supported devices.
+- Select the fastest available supported fan and identify it as a GPU fan in the caption and Sensor health. CPU and case fans still require their own compatible provider.
+- Preserve measured zero RPM as a stopped fan; missing readings remain unavailable. No fan percentage is converted into RPM, and no fan speed controls are called.
+- Clarify that modern LibreHardwareMonitor 0.9.5+ no longer provides WMI. Cirrus opens no listener and does not enable external monitor web servers.
+- Add regression coverage for real windmill animation, GPU source labels and stopped fans.
 
-## Download
+Download Cirrus-Weather-1.2.1.exe for Windows 10 / 11 x64. Quit the previous Cirrus instance from its tray menu before launching the update. The EXE is unsigned; verify it with the attached SHA256.txt.
 
-Download `Cirrus-Weather-1.2.0.exe` and double-click it. Windows 10 / 11 x64; no installation, Node.js, Python, account or server required. Quit the previous Cirrus instance from the tray before upgrading.
-
-The executable is unsigned. Windows may show a publisher or SmartScreen prompt. GPU temperature and fan RPM depend on the available hardware and sensor provider. Notifications depend on Windows notification settings. Cirrus does not install drivers or change fan speeds.
-
-`SHA256.txt` verifies the exact EXE attached to this release. Preferences and window position remain local. History remains in memory until exit unless you explicitly export CSV. There is no telemetry or automatic application update service.
+Existing themes, mini mode, energy saving and optional alerts remain available. NVIDIA NVML reports operating RPM from the driver; it is not a physical fan-failure detector. Unsupported hardware continues to show no reading.

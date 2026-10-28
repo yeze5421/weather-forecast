@@ -68,6 +68,25 @@ test('NVIDIA selects a real adapter and its temperature, and sleeping restarts f
   assert.equal(h.workers.length, 4);
 });
 
+test('driver RPM fallback is identified as a GPU fan, accepts stopped fans and never invents RPM', t => {
+  const h = harness(t);
+  const windows = h.latest('powershell.exe');
+  const send = value => windows.stdout.write(JSON.stringify({ kind: 'sensors', ...value }) + '\n');
+  send({ fanRpm: 941, fanSource: 'NVIDIA NVML', fanKind: 'gpu', fanCount: 2, fanLabel: 'GPU 1 - Fan 2' });
+  let snapshot = h.sampler.getSnapshot();
+  assert.equal(snapshot.fan.rpm, 941);
+  assert.equal(snapshot.fan.kind, 'gpu');
+  assert.equal(snapshot.fan.count, 2);
+  assert.match(snapshot.sensors.fan.detail, /not the CPU fan/);
+  send({ fanRpm: 0, fanSource: 'NVIDIA NVML', fanCount: 2 });
+  assert.equal(h.sampler.getSnapshot().fan.rpm, 0);
+  assert.equal(h.sampler.getSnapshot().sensors.fan.state, 'live');
+  send({ fanRpm: 35, fanSource: 'untrusted percentage sensor' });
+  assert.equal(h.sampler.getSnapshot().fan.rpm, null);
+  send({ fanRpm: null, fanSource: null, fanStatus: 'provider_missing' });
+  assert.match(h.sampler.getSnapshot().sensors.fan.detail, /0\.9\.5\+/);
+});
+
 test('silent sensor services are supervised and cadence changes keep one host of each kind', t => {
   const h = harness(t);
   h.time(60000);

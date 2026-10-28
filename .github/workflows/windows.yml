@@ -75,5 +75,5 @@ jobs:
           if ((Get-FileHash -LiteralPath $executable -Algorithm SHA256).Hash -ine $parts[0]) { throw 'Downloaded checksum mismatch' }
           gh release view $env:RELEASE_TAG *> $null
           if ($LASTEXITCODE -eq 0) { throw 'This version is already published. Release a new version instead of replacing assets.' }
-          gh release create $env:RELEASE_TAG $executable bundle/release/SHA256.txt --verify-tag --target $env:RELEASE_COMMIT --title "Cirrus $env:RELEASE_TAG - A Quieter Sky" --notes-file bundle/RELEASE_NOTES.md --latest
+          gh release create $env:RELEASE_TAG $executable bundle/release/SHA256.txt --verify-tag --target $env:RELEASE_COMMIT --title "Cirrus $env:RELEASE_TAG" --notes-file bundle/RELEASE_NOTES.md --latest
           if ($LASTEXITCODE -ne 0) { throw 'Release publication failed' }
