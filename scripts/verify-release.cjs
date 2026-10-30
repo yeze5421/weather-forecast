@@ -14,7 +14,7 @@ const hash = createHash('sha256').update(binary).digest('hex');
 assert.equal(fs.readFileSync(path.join(root, 'release', 'SHA256.txt'), 'utf8').trim(), `${hash}  ${name}`);
 const archive = path.join(root, 'release', 'win-unpacked', 'resources', 'app.asar');
 assert.equal(JSON.parse(asar.extractFile(archive, 'package.json')).version, version);
-for (const file of ['electron/metrics.cjs', 'electron/main.cjs', 'electron/settings.cjs', 'electron/alerts.cjs', 'electron/runtime-policy.cjs', 'shared/weather-state.cjs', 'shared/themes.json', 'LICENSE', 'build/icon.png']) {
+for (const file of ['electron/metrics.cjs', 'electron/main.cjs', 'electron/history.cjs', 'electron/settings.cjs', 'electron/alerts.cjs', 'electron/runtime-policy.cjs', 'shared/weather-state.cjs', 'shared/themes.json', 'LICENSE', 'build/icon.png']) {
   assert(asar.extractFile(archive, file).equals(fs.readFileSync(path.join(root, file))), `Packaged source mismatch: ${file}`);
 }
 assert(fs.readFileSync(path.join(root, 'release', 'win-unpacked', 'resources', 'app.asar.unpacked', 'electron', 'sensors.ps1')).equals(fs.readFileSync(path.join(root, 'electron', 'sensors.ps1'))));

@@ -11,6 +11,7 @@ const { defaults, normalizePreferences } = require('./settings.cjs');
 const { samplingPolicy } = require('./runtime-policy.cjs');
 const { WeatherController } = require('../shared/weather-state.cjs');
 const { AlertMonitor } = require('./alerts.cjs');
+const { recordHistory } = require('./history.cjs');
 
 app.setName('Cirrus');
 if (process.env.WEATHER_STATION_USER_DATA) app.setPath('userData', path.resolve(process.env.WEATHER_STATION_USER_DATA));
@@ -89,6 +90,7 @@ function savePreferences(patch) {
     });
   }
   preferences = next;
+  sampler?.setFanSelection(next.fanSelection);
   writePreferences();
   notificationStatus = preferences.alertsEnabled ? 'Enabled · Windows notification settings apply' : 'Off';
   if (!preferences.alertsEnabled) { for (const notification of notifications) notification.close(); notifications.clear(); }
@@ -284,12 +286,13 @@ if (!app.requestSingleInstanceLock()) {
     tray.setToolTip('Cirrus · Observing');
     tray.on('click', () => window?.isVisible() ? window.hide() : showWindow());
     refreshTrayMenu();
-    sampler = new MetricsSampler(preferences.refreshInterval).start();
+    sampler = new MetricsSampler(preferences.refreshInterval);
+    sampler.setFanSelection(preferences.fanSelection);
+    sampler.start();
     sampler.on('snapshot', snapshot => {
       snapshot.weather = weatherController.update(snapshot, preferences.source, preferences.stormThreshold, preferences.smoothWeather);
       snapshot.notificationStatus = notificationStatus;
-      history.push(snapshot);
-      while (history.length && (history[0].timestamp < snapshot.timestamp - 30 * 60000 || history.length > 1800)) history.shift();
+      recordHistory(history, snapshot);
       updateTray(snapshot);
       if (power.locked) alertMonitor.clearPending();
       else for (const alert of alertMonitor.update(snapshot, preferences)) showAlert(alert);

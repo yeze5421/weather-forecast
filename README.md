@@ -2,7 +2,9 @@
 
 **A Windows tray widget that turns CPU/GPU load into animated weather, high memory use into thunderstorms, and fan speed into wind — entirely offline.**
 
-**[Download for Windows — portable .exe](https://github.com/yeze5421/weather-forecast/releases/download/v1.2.1/Cirrus-Weather-1.2.1.exe)** · [SHA-256](https://github.com/yeze5421/weather-forecast/releases/download/v1.2.1/SHA256.txt) · [Release notes](https://github.com/yeze5421/weather-forecast/releases/tag/v1.2.1)
+**[Download v1.2.3 for Windows — portable .exe](https://github.com/yeze5421/weather-forecast/releases/download/v1.2.3/Cirrus-Weather-1.2.3.exe)** · [SHA-256](https://github.com/yeze5421/weather-forecast/releases/download/v1.2.3/SHA256.txt) · [Release notes](https://github.com/yeze5421/weather-forecast/releases/tag/v1.2.3)
+
+These v1.2.3 links become available once that release is published. Until then, see the [latest published release](https://github.com/yeze5421/weather-forecast/releases/latest).
 
 Windows 10 / 11 · x64 · No installation or account required · MIT License
 
@@ -14,7 +16,7 @@ Windows 10 / 11 · x64 · No installation or account required · MIT License
 
 **[Download the latest release](https://github.com/yeze5421/weather-forecast/releases/latest)** for Windows 10 / 11 x64. Download the `.exe` attachment and double-click it. Node.js, Python, .NET, accounts, API keys and servers are not required.
 
-This checkout is **1.2.1 — Fan RPM Fix**. Its local portable build is `release/Cirrus-Weather-1.2.1.exe`; `Launch-Cirrus.cmd` opens the most recently built portable executable. GitHub's automatic Source code archives contain source files and require the development setup below.
+This checkout is **1.2.3 — Fan Selection and 24-Hour History**. Its local portable build is `release/Cirrus-Weather-1.2.3.exe`; `Launch-Cirrus.cmd` opens the most recently built portable executable. GitHub's automatic Source code archives contain source files and require the development setup below.
 
 - Left-click the tray weather icon to open or hide the widget.
 - Right-click to select CPU / GPU weather, toggle Always on top, or Quit Cirrus.
@@ -59,7 +61,7 @@ Fan RPM controls the windmill and wind animation. Missing RPM readings leave the
 - **Fan RPM:** compatible WMI fan sensors take priority. If they are unavailable, Cirrus reads supported NVIDIA GPU fan RPM directly through the existing driver's NVML interface. No extra monitor is needed for supported NVIDIA devices. The fastest available reading is used; the UI identifies GPU fans explicitly. Other hardware still needs a compatible sensor provider. Cirrus installs no drivers, changes no fan settings and never converts a fan percentage into RPM.
 - The sampling setting controls CPU / memory and UI updates. GPU / fan sampling uses the separate intervals above, adjusted by Energy saving.
 - Preferences and readings stay on this computer. There is no account, remote API, telemetry upload or automatic update service in the application code.
-- History retains the last 30 minutes of the current session and clears on exit. CSV export is an explicit user action. Preview and live records are kept separately.
+- History retains up to the last 24 hours of the current session, sampled every 10 seconds, and clears on exit. The chart includes 1-hour, 6-hour and 24-hour views. CSV export is an explicit user action. Preview and live records are kept separately.
 
 ## Make it yours
 
@@ -111,7 +113,7 @@ Preferences live in `preferences.json` under the current user's Cirrus applicati
 
 ## Update GitHub
 
-The Windows workflow tests and builds pushes to `main`, pull requests and manual runs. Push a matching version tag, such as `v1.2.1`, to run the same checks, test the packaged desktop, generate SHA-256 and publish the tested EXE as a GitHub Release. A normal push creates a downloadable workflow artifact; a version tag publishes a public Release. Only the EXE, checksum and release notes enter the build artifact. See [PUBLISHING.md](PUBLISHING.md) and [RELEASE_NOTES.md](RELEASE_NOTES.md).
+The Windows workflow tests and builds pushes to `main`, pull requests and manual runs. Push a matching version tag, such as `v1.2.3`, to run the same checks, test the packaged desktop, generate SHA-256 and publish the tested EXE as a GitHub Release. A normal push creates a downloadable workflow artifact; a version tag publishes a public Release. Only the EXE, checksum and release notes enter the build artifact. See [PUBLISHING.md](PUBLISHING.md) and [RELEASE_NOTES.md](RELEASE_NOTES.md).
 
 Local `artifacts/` contains hardware test readings, screenshots and browser profiles. Build diagnostics in `release/` may include local paths. These directories are excluded from Git and must not be uploaded as a whole.
 
@@ -120,3 +122,7 @@ Local `artifacts/` contains hardware test readings, screenshots and browser prof
 [MIT License](LICENSE). Use, modification, redistribution and commercial use are permitted with the copyright and license notice preserved. Electron, Chromium and other third-party components keep their own licenses, included in the application package.
 
 References: [Electron Tray](https://www.electronjs.org/docs/latest/api/tray), [Vite](https://vite.dev/guide/).
+
+### Choose a fan
+
+In **Settings → Fan sensor**, select a detected fan or keep **Auto** to follow the fastest available fan (hardware-monitor sensors take priority over NVIDIA GPU fans). The selection is saved on this computer. An unavailable selected fan stays blank until it returns or you choose another sensor. Supported NVIDIA GPU fans use driver-reported RPM; CPU and case fans require a compatible WMI hardware monitor. Fan availability depends on your hardware and sensor provider.

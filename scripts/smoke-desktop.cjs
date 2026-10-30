@@ -168,11 +168,34 @@ async function launch() {
   assert(csv.includes('"live"'));
   assert(!csv.includes('"preview"'));
   assert(csv.trim().split(/\r?\n/).length > 1);
+  assert.match(await page.locator('.history-stats').innerText(), /Last 24 hours/);
+  assert.equal(await page.locator('#history-page-label').textContent(), 'Page 1 / 1');
   await page.locator('nav [data-view="overview"]').click();
+  await page.locator('[data-period="1440"]').click();
+  assert.match(await page.locator('#chart-container svg').getAttribute('aria-label'), /24h/);
+  await page.locator('[data-period="5"]').click();
   check('live CSV export contains actual records and excludes preview data');
 
   await page.locator('nav [data-view="settings"]').click();
   await assertEnglishInterface(page, 'settings');
+  const detectedFans = await page.evaluate(async () => {
+    for (let i = 0; i < 100; i++) {
+      const snapshot = await window.weatherStation.getSnapshot();
+      if (snapshot.fans?.length) return snapshot.fans;
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    return [];
+  });
+  if (detectedFans.length) {
+    const chosen = detectedFans[0];
+    await page.waitForFunction(id => [...document.querySelector('#setting-fan').options].some(o => o.value === id), chosen.id);
+    await page.locator('#setting-fan').selectOption(chosen.id);
+    await page.waitForFunction(async id => (await window.weatherStation.getSnapshot()).fan.id === id, chosen.id);
+    assert.equal((await page.evaluate(() => window.weatherStation.getPreferences())).fanSelection, chosen.id);
+    await page.locator('#setting-fan').selectOption('auto');
+    await page.waitForFunction(async () => (await window.weatherStation.getPreferences()).fanSelection === 'auto');
+    check('detected fan selection updates the live reading and is saved');
+  }
   await page.screenshot({ path: path.join(artifacts, 'desktop-settings.png'), fullPage: true });
   await page.locator('nav [data-view="overview"]').click();
   check('English history, settings and preview interfaces');
@@ -254,7 +277,7 @@ async function launch() {
   await page.evaluate(() => { window.__smokePushes = 0; });
   await page.waitForTimeout(5500);
   assert.equal(await page.evaluate(() => window.__smokePushes), 0);
-  assert((await page.evaluate(() => window.weatherStation.getHistory())).length > historyBefore);
+  await page.waitForFunction(async previous => (await window.weatherStation.getHistory()).length > previous, historyBefore, { timeout: 25000 });
   assert.equal((await page.evaluate(() => window.weatherStation.getSnapshot())).runtime.mode, 'background');
   await desktop.evaluate(({ app }) => app.emit('second-instance', {}, [], ''));
   await page.waitForFunction(() => !document.body.classList.contains('inactive'));

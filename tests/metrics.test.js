@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
 import { PassThrough } from 'node:stream';
 import { MetricsSampler } from '../electron/metrics.cjs';
+import { defaults, normalizePreferences } from '../electron/settings.cjs';
 
 function harness(t) {
   let now = 0;
@@ -85,6 +86,36 @@ test('driver RPM fallback is identified as a GPU fan, accepts stopped fans and n
   assert.equal(h.sampler.getSnapshot().fan.rpm, null);
   send({ fanRpm: null, fanSource: null, fanStatus: 'provider_missing' });
   assert.match(h.sampler.getSnapshot().sensors.fan.detail, /0\.9\.5\+/);
+});
+
+test('fan selection follows the chosen sensor and never substitutes another when it disappears', t => {
+  const h = harness(t);
+  const windows = h.latest('powershell.exe');
+  const fans = [
+    { id: 'nvml:0:0', label: 'GPU 1 - Fan 1', rpm: 0, source: 'NVIDIA NVML' },
+    { id: 'nvml:0:1', label: 'GPU 1 - Fan 2', rpm: 950, source: 'NVIDIA NVML' },
+  ];
+  const send = list => windows.stdout.write(JSON.stringify({ kind: 'sensors', fans: list, fanStatus: 'live' }) + '\n');
+  send(fans);
+  assert.equal(h.sampler.getSnapshot().fan.rpm, 950);
+  h.sampler.setFanSelection('nvml:0:0');
+  assert.equal(h.sampler.getSnapshot().fan.rpm, 0);
+  assert.equal(h.sampler.getSnapshot().fan.id, 'nvml:0:0');
+  send([fans[1]]);
+  assert.equal(h.sampler.getSnapshot().fan.rpm, null);
+  assert.match(h.sampler.getSnapshot().sensors.fan.detail, /Selected fan is unavailable/);
+  send(fans);
+  assert.equal(h.sampler.getSnapshot().fan.id, 'nvml:0:0');
+  h.time(40000);
+  assert.equal(h.sampler.getSnapshot().fan.rpm, null);
+});
+
+test('fan selection has a safe default and validates persisted sensor identifiers', () => {
+  assert.equal(normalizePreferences({ source: 'gpu' }).fanSelection, 'auto');
+  assert.equal(normalizePreferences({ fanSelection: 'nvml:0:1' }).fanSelection, 'nvml:0:1');
+  assert.equal(normalizePreferences({ fanSelection: `wmi:LibreHardwareMonitor:${'a'.repeat(64)}` }).fanSelection.startsWith('wmi:'), true);
+  assert.throws(() => normalizePreferences({ fanSelection: 'nvml:0:1;command' }));
+  assert.equal(defaults.fanSelection, 'auto');
 });
 
 test('silent sensor services are supervised and cadence changes keep one host of each kind', t => {

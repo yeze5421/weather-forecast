@@ -35,7 +35,7 @@ const weatherIcon = id => ({ sunny: 'sun', cloudy: 'cloud', rainy: 'rain', storm
 const $ = selector => document.querySelector(selector);
 const $$ = selector => [...document.querySelectorAll(selector)];
 const desktop = Boolean(window.weatherStation);
-const defaults = { source: 'cpu', launchAtLogin: false, pinned: false, reducedMotion: false, refreshInterval: 2000, stormThreshold: 90, theme: DEFAULT_THEME, energySaving: true, smoothWeather: true, alertsEnabled: false, alertDuration: 60, temperatureThreshold: 85, windowMode: desktop ? 'widget' : 'station' };
+const defaults = { source: 'cpu', fanSelection: 'auto', launchAtLogin: false, pinned: false, reducedMotion: false, refreshInterval: 2000, stormThreshold: 90, theme: DEFAULT_THEME, energySaving: true, smoothWeather: true, alertsEnabled: false, alertDuration: 60, temperatureThreshold: 85, windowMode: desktop ? 'widget' : 'station' };
 let preferences = { ...defaults };
 try { if (!desktop) preferences = { ...defaults, ...JSON.parse(localStorage.getItem('cirrus-preferences') || '{}') }; } catch {}
 if (!['cpu', 'gpu'].includes(preferences.source)) preferences.source = 'cpu';
@@ -48,6 +48,8 @@ let liveSnapshot = null;
 let view = 'overview';
 let expanded = !desktop;
 let period = 5;
+let historyPage = 0;
+const HISTORY_PAGE_SIZE = 100;
 let histories = { live: [], demo: [] };
 let toastTimer;
 let lastSampleTime = 0;
@@ -101,7 +103,7 @@ app.innerHTML = `
                 <article class="metric-card"><div class="metric-label">${icon('memory')}<span>Memory</span><span class="metric-dot blue"></span></div><div class="metric-value"><strong id="memory-value">—</strong><small>%</small></div><div class="meter memory-meter"><span id="memory-meter"></span></div><div class="metric-caption" id="memory-caption">Awaiting data</div></article>
                 <article class="metric-card fan-card"><div class="metric-label">${icon('fan','fan-icon')}<span>Fan</span><span class="metric-dot green"></span></div><div class="metric-value"><strong id="fan-value">—</strong><small>RPM</small></div><div class="wind-track">${icon('wind')}<span id="wind-caption">Awaiting wind</span></div><div class="metric-caption" id="fan-caption">Awaiting sensor</div></article>
               </div>
-              <section class="trend-card"><div class="section-heading"><div><h3>Load over time <span id="chart-series">CPU</span></h3><p>Every little change, in view.</p></div><div class="period-toggle" aria-label="Time range"><button data-period="1">1 min</button><button class="active" data-period="5">5 min</button><button data-period="15">15 min</button></div></div><div id="chart-container" class="chart-container"></div><div class="chart-footer"><span><i></i><span id="chart-legend">CPU usage</span></span><span id="chart-average">Average —</span></div></section>
+              <section class="trend-card"><div class="section-heading"><div><h3>Load over time <span id="chart-series">CPU</span></h3><p>Every little change, in view.</p></div><div class="period-toggle" aria-label="Time range"><button data-period="1">1 min</button><button class="active" data-period="5">5 min</button><button data-period="15">15 min</button><button data-period="60">1h</button><button data-period="360">6h</button><button data-period="1440">24h</button></div></div><div id="chart-container" class="chart-container"></div><div class="chart-footer"><span><i></i><span id="chart-legend">CPU usage</span></span><span id="chart-average">Average —</span></div></section>
             </div>
             <aside class="secondary-column">
               <section class="interpretation-card"><div class="section-heading"><h3>How is your computer?</h3>${icon('leaf')}</div><div id="mood-label" class="mood-label">Room to breathe</div><p id="mood-description">Plenty of room.<br>Let your ideas grow.</p><div class="insight-divider"></div><div class="insight-row"><span>Weather source</span><strong id="current-source">CPU load</strong></div><div class="insight-row"><span>Uptime</span><strong id="uptime">—</strong></div><div class="insight-row"><span>Refresh interval</span><strong id="refresh-label">Every 2s</strong></div><div class="insight-foot">${icon('check')}<span>Your data stays on this computer</span></div></section>
@@ -112,9 +114,9 @@ app.innerHTML = `
           <footer class="page-footer"><span>${icon('leaf')} Fewer numbers. A little more sky.</span><span id="updated-at">Awaiting the first reading</span><button class="mobile-only text-button" data-view="history">History ${icon('arrow')}</button></footer>
         </section>
 
-        <section id="history-view" class="view" hidden><button class="back-button mobile-only" data-view="overview">${icon('back')} Back to overview</button><div class="page-heading"><div><div class="eyebrow">EVERY LITTLE CHANGE.</div><h1>A record of your sky<span class="heading-dot">.</span></h1><p>Keep track of the passing clouds.</p></div><button id="export-history" class="secondary-button">${icon('download')} Export CSV</button></div><div class="history-stats"><article><span>Readings</span><strong id="history-count">0</strong><small>This session · Last 30 minutes</small></article><article><span>Average load</span><strong id="history-average">—</strong><small id="history-source">CPU usage</small></article><article><span>Peak load</span><strong id="history-maximum">—</strong><small>The busiest moment in your sky</small></article></div><section class="records-card"><div class="section-heading"><h3>Recent readings</h3><span id="history-mode" class="subtle-label">Live data</span></div><div class="table-scroll"><table><thead><tr><th>Time</th><th>Weather</th><th>CPU</th><th>GPU</th><th>Memory</th><th>Fan RPM</th></tr></thead><tbody id="history-rows"></tbody></table></div><p class="records-note">Readings from this session. Preview and live records are kept separately.</p></section></section>
+        <section id="history-view" class="view" hidden><button class="back-button mobile-only" data-view="overview">${icon('back')} Back to overview</button><div class="page-heading"><div><div class="eyebrow">EVERY LITTLE CHANGE.</div><h1>A record of your sky<span class="heading-dot">.</span></h1><p>Keep track of the passing clouds.</p></div><button id="export-history" class="secondary-button">${icon('download')} Export CSV</button></div><div class="history-stats"><article><span>Readings</span><strong id="history-count">0</strong><small>This session · Last 24 hours</small></article><article><span>Average load</span><strong id="history-average">—</strong><small id="history-source">CPU usage</small></article><article><span>Peak load</span><strong id="history-maximum">—</strong><small>The busiest moment in your sky</small></article></div><section class="records-card"><div class="section-heading"><h3>Recent readings</h3><span id="history-mode" class="subtle-label">Live data</span></div><div class="table-scroll"><table><thead><tr><th>Time</th><th>Weather</th><th>CPU</th><th>GPU</th><th>Memory</th><th>Fan RPM</th></tr></thead><tbody id="history-rows"></tbody></table></div><div class="history-pagination"><button id="history-newer" class="secondary-button" type="button">Newer</button><span id="history-page-label" aria-live="polite">Page 1</span><button id="history-older" class="secondary-button" type="button">Older</button></div><p class="records-note">Readings every 10 seconds during this session. Preview and live records are kept separately.</p></section></section>
 
-        <section id="settings-view" class="view" hidden><button class="back-button mobile-only" data-view="overview">${icon('back')} Back to overview</button><div class="page-heading"><div><div class="eyebrow">MAKE YOURSELF AT HOME.</div><h1>Make this sky yours<span class="heading-dot">.</span></h1><p>Set a rhythm that feels right.</p></div></div>${themePickerMarkup(icon)}<div class="settings-card"><h3>Observation preferences</h3><label class="setting-row"><span><b>Weather source</b><small>Choose which load sets the weather</small></span><select id="setting-source"><option value="cpu">CPU · Processor</option><option value="gpu">GPU · Graphics</option></select></label><label class="setting-row"><span><b>Sampling interval</b><small>Less frequent readings use fewer resources</small></span><select id="setting-refresh"><option value="1000">Every 1s</option><option value="2000">Every 2s</option><option value="5000">Every 5s</option></select></label><div class="setting-row threshold-row"><span><b>Storm threshold</b><small>Show a thunderstorm when memory reaches this level</small></span><label class="range-setting"><input id="setting-threshold" aria-label="Memory threshold for thunderstorms" type="range" min="70" max="98" step="1"><output id="threshold-output">90%</output></label></div><h3 class="settings-subheading">A quieter companion</h3><label class="setting-row"><span><b>Reduce motion</b><small>Pause clouds, rain and the windmill</small></span><input class="switch" id="setting-motion" type="checkbox" role="switch"></label><label class="setting-row"><span><b>Always on top</b><small id="pin-setting-note">Keep the weather in view while you work</small></span><input class="switch" id="setting-pinned" type="checkbox" role="switch"></label><label class="setting-row"><span><b>Launch at login</b><small id="login-setting-note">Start in the system tray when you sign in</small></span><input class="switch" id="setting-login" type="checkbox" role="switch"></label></div><div class="about-card"><span class="brand-mark">${icon('sun')}</span><div><strong>Cirrus <span>${version} · DESKTOP WEATHER</span></strong><p>Weather from your computer. A little calm for you.</p></div></div><p class="settings-footnote">GPU and fan readings depend on hardware and driver support. Missing values stay blank.</p></section>
+        <section id="settings-view" class="view" hidden><button class="back-button mobile-only" data-view="overview">${icon('back')} Back to overview</button><div class="page-heading"><div><div class="eyebrow">MAKE YOURSELF AT HOME.</div><h1>Make this sky yours<span class="heading-dot">.</span></h1><p>Set a rhythm that feels right.</p></div></div>${themePickerMarkup(icon)}<div class="settings-card"><h3>Observation preferences</h3><label class="setting-row"><span><b>Weather source</b><small>Choose which load sets the weather</small></span><select id="setting-source"><option value="cpu">CPU · Processor</option><option value="gpu">GPU · Graphics</option></select></label><label class="setting-row"><span><b>Fan sensor</b><small id="fan-selection-note">Choose a detected fan for the windmill</small></span><select id="setting-fan"><option value="auto">Auto · Fastest available</option></select></label><label class="setting-row"><span><b>Sampling interval</b><small>Less frequent readings use fewer resources</small></span><select id="setting-refresh"><option value="1000">Every 1s</option><option value="2000">Every 2s</option><option value="5000">Every 5s</option></select></label><div class="setting-row threshold-row"><span><b>Storm threshold</b><small>Show a thunderstorm when memory reaches this level</small></span><label class="range-setting"><input id="setting-threshold" aria-label="Memory threshold for thunderstorms" type="range" min="70" max="98" step="1"><output id="threshold-output">90%</output></label></div><h3 class="settings-subheading">A quieter companion</h3><label class="setting-row"><span><b>Reduce motion</b><small>Pause clouds, rain and the windmill</small></span><input class="switch" id="setting-motion" type="checkbox" role="switch"></label><label class="setting-row"><span><b>Always on top</b><small id="pin-setting-note">Keep the weather in view while you work</small></span><input class="switch" id="setting-pinned" type="checkbox" role="switch"></label><label class="setting-row"><span><b>Launch at login</b><small id="login-setting-note">Start in the system tray when you sign in</small></span><input class="switch" id="setting-login" type="checkbox" role="switch"></label></div><div class="about-card"><span class="brand-mark">${icon('sun')}</span><div><strong>Cirrus <span>${version} · DESKTOP WEATHER</span></strong><p>Weather from your computer. A little calm for you.</p></div></div><p class="settings-footnote">GPU and fan readings depend on hardware and driver support. Missing values stay blank.</p></section>
       </main>
     </div>
   </div>
@@ -171,6 +173,7 @@ function syncPreferences() {
   $('#current-theme').textContent = theme.name;
   $$('[data-source]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.source === preferences.source)));
   $('#setting-source').value = preferences.source;
+  renderFanOptions();
   $('#setting-refresh').value = String(preferences.refreshInterval);
   $('#setting-threshold').value = preferences.stormThreshold;
   $('#threshold-output').value = `${preferences.stormThreshold}%`;
@@ -223,7 +226,24 @@ async function setWindowMode(mode) {
   else await savePreferences({ windowMode: mode });
 }
 
+function renderFanOptions() {
+  const select = $('#setting-fan');
+  const fans = liveSnapshot?.fans || [];
+  const selected = preferences.fanSelection || 'auto';
+  const entries = [['auto', 'Auto · Fastest available'], ...fans.map(fan => [fan.id, fan.label + ' · ' + fan.source])];
+  if (selected !== 'auto' && !fans.some(fan => fan.id === selected)) entries.push([selected, 'Selected fan · Unavailable']);
+  const signature = JSON.stringify(entries);
+  if (select.dataset.signature !== signature) {
+    select.replaceChildren(...entries.map(([value, label]) => new Option(label, value)));
+    select.dataset.signature = signature;
+  }
+  select.value = selected;
+  $('#fan-selection-note').textContent = !desktop ? 'Available in the desktop app' : fans.length ? 'The windmill follows the selected sensor' : 'Waiting for supported fan sensors';
+  select.disabled = !desktop;
+}
+
 function renderDiagnostics() {
+  renderFanOptions();
   for (const type of ['gpu', 'fan']) {
     const sensor = liveSnapshot?.sensors?.[type];
     $(`#${type}-status`).textContent = sensor ? sensor.state[0].toUpperCase() + sensor.state.slice(1) : 'Preview only';
@@ -255,10 +275,10 @@ function makeDemo(weather = demoWeather, timestamp = Date.now()) {
 function addSample(sample, key) {
   if (!sample || !Number.isFinite(sample.timestamp)) return;
   const list = histories[key];
-  if (list.at(-1)?.timestamp === sample.timestamp) return;
+  if (list.length && sample.timestamp - list.at(-1).timestamp < 10000) return;
   list.push(sample);
-  const cutoff = Date.now() - 30 * 60 * 1000;
-  while (list.length && (list[0].timestamp < cutoff || list.length > 1800)) list.shift();
+  const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+  while (list.length && (list[0].timestamp < cutoff || list.length > 8641)) list.shift();
 }
 
 function seedDemoHistory() {
@@ -274,6 +294,7 @@ function seedDemoHistory() {
 }
 
 function setDemo(weather) {
+  historyPage = 0;
   demo = true;
   demoWeather = weather;
   snapshot = makeDemo(weather);
@@ -331,7 +352,7 @@ function render() {
   $('#memory-caption').textContent = mem ? `${number(mem.usedGB, 1)} / ${number(mem.totalGB, 1)} GB` : 'Awaiting data';
   $('#memory-caption').classList.toggle('warning-text', (mem?.usage ?? 0) >= preferences.stormThreshold);
   $('#wind-caption').textContent = Number.isFinite(rpm) ? (rpm === 0 ? 'Fan stopped' : rpm < 1500 ? 'Light breeze' : rpm < 2500 ? 'Steady breeze' : 'Wind picking up') : 'No RPM source';
-  $('#fan-caption').textContent = Number.isFinite(rpm) ? (demo ? 'Demo sensor' : snapshot.fan.kind === 'gpu' ? 'GPU fan · NVIDIA' : snapshot.fan.source || 'RPM sensor') : 'See Settings · Sensor health';
+  $('#fan-caption').textContent = Number.isFinite(rpm) ? (demo ? 'Demo sensor' : snapshot.fan.label || snapshot.fan.source || 'RPM sensor') : 'See Settings · Sensor health';
   $('#fan-caption').title = demo ? 'Demonstration readings' : snapshot?.sensors?.fan?.detail || 'No fan RPM sensor is connected.';
   $('#mini-fan').title = demo ? 'Demonstration readings' : snapshot?.sensors?.fan?.detail || 'No fan RPM sensor is connected.';
   $('.fan-icon').style.animationDuration = Number.isFinite(rpm) && rpm > 0 ? `${Math.max(.4, 2400 / rpm)}s` : '0s';
@@ -370,17 +391,21 @@ function renderChart() {
     return;
   }
   const width = 620, height = 128, left = 34, right = 604, top = 12, bottom = 103;
+  const periodLabel = period >= 60 ? `${period / 60}h` : `${period} min`;
   const end = Date.now(), start = end - period * 60000;
-  const points = list.map(s => ({x: left + (s.timestamp-start)/(end-start)*(right-left), y: bottom-(s[preferences.source]?.usage ?? 0)/100*(bottom-top), valid: Number.isFinite(s[preferences.source]?.usage)}));
+  const points = list.map(s => ({t: s.timestamp, x: left + (s.timestamp-start)/(end-start)*(right-left), y: bottom-(s[preferences.source]?.usage ?? 0)/100*(bottom-top), valid: Number.isFinite(s[preferences.source]?.usage)}));
   let paths = [], segment = [];
-  for (const point of points) { if (point.valid) segment.push(point); else if (segment.length) { paths.push(segment); segment = []; } }
+  for (const point of points) {
+    if (segment.length && (!point.valid || point.t - segment.at(-1).t > 30000)) { paths.push(segment); segment = []; }
+    if (point.valid) segment.push(point);
+  }
   if (segment.length) paths.push(segment);
   const lineMarkup = paths.map(segment => {
     const d = segment.map((p,i) => `${i ? 'L' : 'M'}${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(' ');
     return `<path d="${d} L${segment.at(-1).x.toFixed(2)},${bottom} L${segment[0].x.toFixed(2)},${bottom}Z" fill="url(#chart-fill)"/><path d="${d}" fill="none" stroke="var(--chart-line)" stroke-width="2.2" stroke-linejoin="round"/>`;
   }).join('');
   const last = points.filter(p=>p.valid).at(-1);
-  $('#chart-container').innerHTML = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${series} load over the last ${period} minutes; average ${formatPercent(summary.avg)}"><defs><linearGradient id="chart-fill" x1="0" y1="0" x2="0" y2="1"><stop stop-color="var(--chart-fill)" stop-opacity=".28"/><stop offset="1" stop-color="var(--chart-fill)" stop-opacity=".015"/></linearGradient></defs>${[0,50,100].map(n=>`<line x1="${left}" x2="${right}" y1="${bottom-n/100*(bottom-top)}" y2="${bottom-n/100*(bottom-top)}" stroke="var(--chart-grid)" stroke-dasharray="3 5"/><text x="22" y="${bottom-n/100*(bottom-top)+3}" text-anchor="end" fill="var(--chart-label)" font-size="9">${n}%</text>`).join('')}${lineMarkup}${last ? `<circle cx="${last.x}" cy="${last.y}" r="3.5" fill="var(--chart-line)" stroke="var(--theme-surface)" stroke-width="2"/>` : ''}<text x="${left}" y="124" fill="var(--chart-label)" font-size="9">${period} min ago</text><text x="${right}" y="124" fill="var(--chart-label)" font-size="9" text-anchor="end">Now</text></svg>`;
+  $('#chart-container').innerHTML = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${series} load over the last ${periodLabel}; average ${formatPercent(summary.avg)}"><defs><linearGradient id="chart-fill" x1="0" y1="0" x2="0" y2="1"><stop stop-color="var(--chart-fill)" stop-opacity=".28"/><stop offset="1" stop-color="var(--chart-fill)" stop-opacity=".015"/></linearGradient></defs>${[0,50,100].map(n=>`<line x1="${left}" x2="${right}" y1="${bottom-n/100*(bottom-top)}" y2="${bottom-n/100*(bottom-top)}" stroke="var(--chart-grid)" stroke-dasharray="3 5"/><text x="22" y="${bottom-n/100*(bottom-top)+3}" text-anchor="end" fill="var(--chart-label)" font-size="9">${n}%</text>`).join('')}${lineMarkup}${last ? `<circle cx="${last.x}" cy="${last.y}" r="3.5" fill="var(--chart-line)" stroke="var(--theme-surface)" stroke-width="2"/>` : ''}<text x="${left}" y="124" fill="var(--chart-label)" font-size="9">${periodLabel} ago</text><text x="${right}" y="124" fill="var(--chart-label)" font-size="9" text-anchor="end">Now</text></svg>`;
 }
 
 function renderHistory() {
@@ -392,9 +417,16 @@ function renderHistory() {
   $('#history-source').textContent = `${preferences.source.toUpperCase()} usage`;
   $('#history-mode').textContent = demo ? 'Preview data' : 'Live session';
   $('#export-history').disabled = !list.length;
-  $('#history-rows').innerHTML = list.length ? list.slice(-30).reverse().map(sample => {
+  const pages = Math.max(1, Math.ceil(list.length / HISTORY_PAGE_SIZE));
+  historyPage = Math.min(historyPage, pages - 1);
+  const end = Math.max(0, list.length - historyPage * HISTORY_PAGE_SIZE);
+  const pageRows = list.slice(Math.max(0, end - HISTORY_PAGE_SIZE), end).reverse();
+  $('#history-page-label').textContent = `Page ${historyPage + 1} / ${pages}`;
+  $('#history-newer').disabled = historyPage === 0;
+  $('#history-older').disabled = historyPage >= pages - 1;
+  $('#history-rows').innerHTML = list.length ? pageRows.map(sample => {
     const state = sampleWeather(sample);
-    return `<tr><td>${time(sample.timestamp)}</td><td><span class="table-weather ${state.id}">${icon(weatherIcon(state.id))}${state.label}</span></td><td>${formatPercent(sample.cpu?.usage)}</td><td>${formatPercent(sample.gpu?.usage)}</td><td>${formatPercent(sample.memory?.usage)}</td><td>${number(sample.fan?.rpm)}</td></tr>`;
+    return `<tr><td>${new Date(sample.timestamp).toLocaleString('en-US', { month: 'short', day: 'numeric', hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}</td><td><span class="table-weather ${state.id}">${icon(weatherIcon(state.id))}${state.label}</span></td><td>${formatPercent(sample.cpu?.usage)}</td><td>${formatPercent(sample.gpu?.usage)}</td><td>${formatPercent(sample.memory?.usage)}</td><td>${number(sample.fan?.rpm)}</td></tr>`;
   }).join('') : '<tr><td colspan="6" class="empty-records">No readings yet. Your sky will leave a trail here.</td></tr>';
 }
 
@@ -416,14 +448,20 @@ $$('[data-period]').forEach(button => button.addEventListener('click', () => { p
 $('#preview-toggle').addEventListener('click', () => { const open = $('#preview-popover').hidden; $('#preview-popover').hidden = !open; $('#preview-toggle').setAttribute('aria-expanded', String(open)); });
 document.addEventListener('click', event => { if (!event.target.closest('.preview-anchor')) closePreview(); });
 document.addEventListener('keydown', event => { if (event.key === 'Escape') { closePreview(); if (view !== 'overview') setView('overview'); } });
-$('#return-live')?.addEventListener('click', () => { demo = false; snapshot = liveSnapshot; closePreview(); render(); toast('Back to live desktop weather'); });
+$('#return-live')?.addEventListener('click', () => { historyPage = 0; demo = false; snapshot = liveSnapshot; closePreview(); render(); toast('Back to live desktop weather'); });
 $('#pin-button').addEventListener('click', () => savePreferences({pinned:!preferences.pinned}));
 $('#expand-button').addEventListener('click', toggleExpanded);
 $('#widget-button').addEventListener('click', toggleExpanded);
 $('#mobile-settings').addEventListener('click', () => setView(view === 'settings' ? 'overview' : 'settings'));
 $('#hide-button').addEventListener('click', () => window.weatherStation?.hide());
 $('#export-history').addEventListener('click', exportHistory);
+$('#history-newer').addEventListener('click', () => { historyPage = Math.max(0, historyPage - 1); renderHistory(); });
+$('#history-older').addEventListener('click', () => { historyPage++; renderHistory(); });
 $$('[data-theme-option]').forEach(button => button.addEventListener('click', () => savePreferences({theme:button.dataset.themeOption})));
+$('#setting-fan').addEventListener('change', async event => {
+  await savePreferences({ fanSelection: event.target.value });
+  if (desktop) { liveSnapshot = await window.weatherStation.getSnapshot(); if (!demo) snapshot = liveSnapshot; render(); }
+});
 $('#setting-source').addEventListener('change', event=>savePreferences({source:event.target.value}));
 $('#setting-refresh').addEventListener('change', event=>savePreferences({refreshInterval:Number(event.target.value)}));
 $('#setting-threshold').addEventListener('input', event=>{ $('#threshold-output').value=`${event.target.value}%`; });

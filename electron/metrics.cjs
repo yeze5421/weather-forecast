@@ -22,6 +22,8 @@ class MetricsSampler extends EventEmitter {
     this.cpuUsage = null;
     this.gpu = { usage: null, name: 'GPU sensor unavailable', temperature: null };
     this.fan = { rpm: null, source: null };
+    this.fans = [];
+    this.fanSelection = 'auto';
     this.gpuUpdated = null;
     this.fanUpdated = null;
     this.gpuDetail = 'Starting the GPU sensor.';
@@ -48,6 +50,7 @@ class MetricsSampler extends EventEmitter {
       this.timer.unref?.();
     }
   }
+  setFanSelection(id) { this.fanSelection = id; }
   setInterval(interval) { this.setPolicy({ interval }); }
   setPolicy(policy) {
     const workersChanged = (policy.gpuInterval != null && policy.gpuInterval !== this.gpuInterval) || (policy.sensorInterval != null && policy.sensorInterval !== this.sensorInterval);
@@ -85,15 +88,18 @@ class MetricsSampler extends EventEmitter {
     const gpuFresh = this.gpuUpdated !== null && timestamp - this.gpuUpdated <= Math.max(this.gpuInterval, this.sensorInterval) * 2000 + 5000;
     const fanFresh = this.fanUpdated !== null && timestamp - this.fanUpdated <= this.sensorInterval * 2000 + 5000;
     const gpu = gpuFresh ? { ...this.gpu } : { ...this.gpu, usage: null, temperature: null };
-    const fan = fanFresh ? { ...this.fan } : { rpm: null, source: null };
+    const fans = fanFresh ? this.fans : [];
+    const automatic = fans.some(f => f.source !== 'NVIDIA NVML') ? fans.filter(f => f.source !== 'NVIDIA NVML') : fans;
+    const selected = this.fanSelection === 'auto' ? automatic.reduce((best, f) => !best || f.rpm > best.rpm ? f : best, null) : fans.find(f => f.id === this.fanSelection);
+    const fan = fans.length || this.fanSelection !== 'auto' ? selected ? { ...selected, count: fans.length } : { rpm: null, source: null } : fanFresh ? { ...this.fan } : { rpm: null, source: null };
     return {
       timestamp,
       cpu: { usage: this.cpuUsage, name: os.cpus()[0]?.model?.trim() || 'CPU' },
       gpu, memory: { usage: total > 0 ? percentage(used / total * 100) : 0, usedGB: used / GiB, totalGB: total / GiB },
-      fan, uptime: os.uptime(),
+      fan, fans, uptime: os.uptime(),
       sensors: {
         gpu: { state: this.suspended ? 'paused' : gpu.usage !== null ? 'live' : this.gpuUpdated !== null && !gpuFresh ? 'stale' : 'unavailable', detail: gpu.usage !== null ? (this.nvidiaHealthy ? 'NVIDIA driver sensor is connected.' : 'Windows GPU performance counters are connected.') : this.gpuDetail, updatedAt: this.gpuUpdated },
-        fan: { state: this.suspended ? 'paused' : fan.rpm !== null ? 'live' : !fanFresh && this.fanUpdated !== null ? 'stale' : 'unavailable', detail: fan.rpm !== null ? fan.kind === 'gpu' ? `NVIDIA GPU fan RPM from the driver. ${fan.label || 'Fastest supported GPU fan'}; ${fan.count || 1} fan sensor(s). This is not the CPU fan.` : `${fan.source} fan sensor is connected.` : this.fanDetail, updatedAt: this.fanUpdated },
+        fan: { state: this.suspended ? 'paused' : fan.rpm !== null ? 'live' : !fanFresh && this.fanUpdated !== null ? 'stale' : 'unavailable', detail: fan.rpm !== null ? fan.kind === 'gpu' ? `NVIDIA GPU fan RPM from the driver. ${fan.label || 'Fastest supported GPU fan'}; ${fan.count || 1} fan sensor(s). This is not the CPU fan.` : `${fan.source} fan sensor is connected.` : this.fanSelection !== 'auto' && fanFresh && !selected ? 'Selected fan is unavailable. Reconnect it or choose another fan in Settings.' : this.fanDetail, updatedAt: this.fanUpdated },
       },
       runtime: { mode: this.suspended ? 'suspended' : this.mode, interval: this.interval, gpuInterval: this.gpuInterval, sensorInterval: this.sensorInterval },
     };
@@ -204,6 +210,7 @@ class MetricsSampler extends EventEmitter {
         this.failures.windows = 0;
         const source = ['LibreHardwareMonitor', 'OpenHardwareMonitor', 'NVIDIA NVML'].includes(data.fanSource) ? data.fanSource : null;
         this.fan = { rpm: source ? positive(data.fanRpm) : null, source, kind: source === 'NVIDIA NVML' ? 'gpu' : 'system', count: Number.isInteger(data.fanCount) && data.fanCount > 0 && data.fanCount <= 256 ? data.fanCount : null, label: source === 'NVIDIA NVML' && typeof data.fanLabel === 'string' && /^GPU \d+ - Fan \d+$/.test(data.fanLabel) ? data.fanLabel : null };
+        this.fans = Array.isArray(data.fans) ? data.fans.slice(0, 256).filter(f => f && typeof f.id === 'string' && /^(nvml:\d{1,2}:\d{1,2}|wmi:(LibreHardwareMonitor|OpenHardwareMonitor):[a-f0-9]{64})$/.test(f.id) && ['LibreHardwareMonitor', 'OpenHardwareMonitor', 'NVIDIA NVML'].includes(f.source) && positive(f.rpm) !== null && typeof f.label === 'string').map(f => ({ id: f.id, label: f.label.replace(/[\x00-\x1f\x7f]/g, '').slice(0, 100) || 'Hardware fan', rpm: positive(f.rpm), source: f.source, kind: f.source === 'NVIDIA NVML' ? 'gpu' : 'system' })) : [];
         this.fanUpdated = this.clock();
         const explanations = { provider_missing: 'No supported fan RPM source is connected. NVIDIA driver RPM is used when available; other fans require a compatible WMI provider. LibreHardwareMonitor 0.9.5+ no longer provides WMI.', no_sensor: 'The monitor is connected, but no supported fan RPM reading is available.', access_denied: 'Windows denied access to the fan sensor provider and no supported NVIDIA RPM reading is available.' };
         this.fanDetail = explanations[data.fanStatus] || 'Fan RPM is not available from this hardware.';

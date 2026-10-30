@@ -36,3 +36,6 @@
 .thermal-strip { padding:5px 10px; margin-bottom:8px; }
 @media(max-height:900px) { @container app (min-width:901px) { .weather-card { height:220px; } } }
 @container app (max-width:620px) { .weather-card { height:222px; } .thermal-strip { padding:5px 10px; margin-bottom:8px; } }
+
+.history-pagination { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 16px; color: var(--theme-muted); font-size: 10px; }
+.history-pagination button:disabled { opacity: .45; cursor: default; }

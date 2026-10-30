@@ -10,6 +10,7 @@ if (Test-Path -LiteralPath (Join-Path $env:WINDIR 'System32\nvml.dll')) {
         Add-Type -ErrorAction Stop -TypeDefinition @'
 using System;
 using System.Runtime.InteropServices;
+using System.Collections.Generic;
 [assembly: DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
 public static class CirrusNvidiaFans {
     [StructLayout(LayoutKind.Sequential)]
@@ -31,7 +32,7 @@ public static class CirrusNvidiaFans {
             initialized = true;
             uint adapters;
             if (nvmlDeviceGetCount_v2(out adapters) != 0) return null;
-            uint best = 0, count = 0, bestAdapter = 0, bestFan = 0;
+            List<uint> results = new List<uint>();
             for (uint adapter = 0; adapter < Math.Min(adapters, 16u); adapter++) {
                 IntPtr device;
                 if (nvmlDeviceGetHandleByIndex_v2(adapter, out device) != 0) continue;
@@ -40,11 +41,10 @@ public static class CirrusNvidiaFans {
                     info.version = (uint)Marshal.SizeOf(typeof(FanInfo)) | (1u << 24);
                     info.fan = fan;
                     if (nvmlDeviceGetFanSpeedRPM(device, ref info) != 0) break;
-                    if (count == 0 || info.speed > best) { best = info.speed; bestAdapter = adapter; bestFan = fan; }
-                    count++;
+                    results.Add(adapter); results.Add(fan); results.Add(info.speed);
                 }
             }
-            return count > 0 ? new uint[] { best, count, bestAdapter, bestFan } : null;
+            return results.ToArray();
         } catch { return null; }
         finally { if (initialized) { try { nvmlShutdown(); } catch { } } }
     }
@@ -56,40 +56,31 @@ public static class CirrusNvidiaFans {
 $gpuName = $null
 if ($IncludeGpu) { $gpuName = (Get-CimInstance Win32_VideoController | Select-Object -ExpandProperty Name) -join ' / ' }
 while ($true) {
-    $fanRpm = $null
-    $fanSource = $null
     $fanStatus = 'provider_missing'
-    $fanKind = $null
-    $fanCount = 0
-    $fanLabel = $null
+    $availableFans = New-Object System.Collections.ArrayList
     foreach ($provider in @('LibreHardwareMonitor', 'OpenHardwareMonitor')) {
         try {
-            $fans = @(Get-CimInstance -Namespace "root\$provider" -ClassName Sensor -Filter "SensorType='Fan'" -ErrorAction Stop | Where-Object { $null -ne $_.Value -and $_.Value -ge 0 })
+            $fans = @(Get-CimInstance -Namespace "root\$provider" -ClassName Sensor -Filter "SensorType='Fan'" -ErrorAction Stop | Where-Object { $null -ne $_.Value -and $_.Value -ge 0 -and $_.Identifier })
             $fanStatus = 'no_sensor'
-            if ($fans.Count -gt 0) {
-                $fanRpm = [double](($fans | Measure-Object -Property Value -Maximum).Maximum)
-                $fanSource = $provider
-                $fanKind = 'system'
-                $fanCount = $fans.Count
-                $fanLabel = 'Fastest available hardware fan'
-                $fanStatus = 'live'
-                break
+            foreach ($fan in $fans) {
+                $sha = [System.Security.Cryptography.SHA256]::Create()
+                try { $hash = ([BitConverter]::ToString($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes([string]$fan.Identifier)))).Replace('-', '').ToLowerInvariant() } finally { $sha.Dispose() }
+                $label = if ($fan.Name) { [string]$fan.Name } else { 'Hardware fan' }
+                [void]$availableFans.Add(@{ id = "wmi:$provider`:$hash"; label = $label; rpm = [double]$fan.Value; source = $provider; kind = 'system' })
             }
+            if ($fans.Count -gt 0) { break }
         } catch {
             if ($_.CategoryInfo.Category -eq 'PermissionDenied') { $fanStatus = 'access_denied' }
         }
     }
-    if ($null -eq $fanRpm -and $nvidiaFanReady) {
+    if ($nvidiaFanReady) {
         $driverFans = [CirrusNvidiaFans]::Read()
-        if ($null -ne $driverFans -and $driverFans.Length -eq 4) {
-            $fanRpm = [double]$driverFans[0]
-            $fanCount = [int]$driverFans[1]
-            $fanSource = 'NVIDIA NVML'
-            $fanKind = 'gpu'
-            $fanLabel = 'GPU {0} - Fan {1}' -f ($driverFans[2] + 1), ($driverFans[3] + 1)
-            $fanStatus = 'live'
+        for ($i = 0; $null -ne $driverFans -and $i + 2 -lt $driverFans.Length; $i += 3) {
+            $adapter = [int]$driverFans[$i]; $fanIndex = [int]$driverFans[$i + 1]
+            [void]$availableFans.Add(@{ id = "nvml:$adapter`:$fanIndex"; label = ('GPU {0} - Fan {1}' -f ($adapter + 1), ($fanIndex + 1)); rpm = [double]$driverFans[$i + 2]; source = 'NVIDIA NVML'; kind = 'gpu' })
         }
     }
+    if ($availableFans.Count -gt 0) { $fanStatus = 'live' }
     $gpuUsage = $null
     if ($IncludeGpu) {
         $engines = @(Get-CimInstance Win32_PerfFormattedData_GPUPerformanceCounters_GPUEngine)
@@ -103,7 +94,7 @@ while ($true) {
             $gpuUsage = [Math]::Min(100, [double](($groups.Values | Measure-Object -Maximum).Maximum))
         }
     }
-    @{ kind = 'sensors'; fanRpm = $fanRpm; fanSource = $fanSource; fanKind = $fanKind; fanCount = $fanCount; fanLabel = $fanLabel; fanStatus = $fanStatus; gpuUsage = $gpuUsage; gpuName = $gpuName } | ConvertTo-Json -Compress | ForEach-Object { [Console]::WriteLine($_) }
+    @{ kind = 'sensors'; fans = @($availableFans.ToArray()); fanStatus = $fanStatus; gpuUsage = $gpuUsage; gpuName = $gpuName } | ConvertTo-Json -Depth 5 -Compress | ForEach-Object { [Console]::WriteLine($_) }
     if ($Once) { break }
     Start-Sleep -Seconds $IntervalSeconds
 }

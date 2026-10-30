@@ -2,7 +2,7 @@
 
 ## Runtime requirements
 
-Cirrus 1.2.1 targets Windows 10 / 11 x64. Electron bundles Chromium, Node.js and the application code. End users need no additional development runtime, account, API key, server or weather service. Normal observations work offline.
+Cirrus 1.2.3 targets Windows 10 / 11 x64. Electron bundles Chromium, Node.js and the application code. End users need no additional development runtime, account, API key, server or weather service. Normal observations work offline.
 
 | Feature | Source and requirements |
 | --- | --- |
@@ -17,7 +17,7 @@ Development requires Node.js 22.12+, npm and network access to download dependen
 
 ## Commit the quieter desktop edition
 
-The repository is [yeze5421/weather-forecast](https://github.com/yeze5421/weather-forecast). Versions 1.0.0, 1.0.1 and 1.1.0 are already published; the quieter desktop edition uses **1.2.1**.
+The repository is [yeze5421/weather-forecast](https://github.com/yeze5421/weather-forecast). The next release is **1.2.3**, with fan selection and 24-hour session history.
 
 From the project directory:
 
@@ -25,7 +25,7 @@ From the project directory:
 git add -A
 git diff --cached --stat
 git diff --cached --name-only
-git commit -m "Upgrade desktop runtime and prepare v1.2.1"
+git commit -m "Add fan selection and 24-hour history"
 git push
 ```
 
@@ -40,8 +40,8 @@ A tag matching package.json publishes the tested artifact in a public GitHub Rel
 After committing and pushing a new version:
 
 ```powershell
-git tag v1.2.1
-git push origin v1.2.1
+git tag v1.2.3
+git push origin v1.2.3
 gh run list --workflow windows.yml
 ```
 
@@ -77,7 +77,7 @@ The review covers first-party code, configuration, dependency download URLs, the
 - No account credentials, API keys, private keys, actual user profile paths or project absolute paths were found in the reviewed first-party content. The copyright notice uses the public GitHub handle `yeze5421`.
 - Dependency download URLs use the public npm registry without embedded credentials. One upstream deprecation notice contains a maintainer's public contact email.
 - Application code reads hardware names, utilization, memory, temperature, fan RPM, timestamps and uptime. It contains no account, hostname, MAC address, serial number or personal document collection, telemetry uploads, remote API calls or automatic update service. Development readiness checks contact the local Vite server.
-- Preferences stay in the user's application data directory. History retains the most recent 30 minutes and clears on exit. User-exported CSVs contain timestamps and readings. Electron may also create local cache and configuration files.
+- Preferences stay in the user's application data directory. History retains up to the most recent 24 hours of the current session, sampled every 10 seconds, and clears on exit. User-exported CSVs contain timestamps and readings. Electron may also create local cache and configuration files.
 - Local test JSON, CSVs and screenshots contain actual hardware and usage information. Browser test profiles and build diagnostics may contain local paths. These remain in ignored local directories and are not application or source release content.
 - `.gitignore` excludes generated data, environment files, common credentials, signing material and editor state. Ignore rules do not protect manual folder uploads or remove anything already present in Git history. Example environment files still need review.
 
