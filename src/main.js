@@ -35,7 +35,7 @@ const weatherIcon = id => ({ sunny: 'sun', cloudy: 'cloud', rainy: 'rain', storm
 const $ = selector => document.querySelector(selector);
 const $$ = selector => [...document.querySelectorAll(selector)];
 const desktop = Boolean(window.weatherStation);
-const defaults = { source: 'cpu', fanSelection: 'auto', launchAtLogin: false, pinned: false, reducedMotion: false, refreshInterval: 2000, stormThreshold: 90, theme: DEFAULT_THEME, energySaving: true, smoothWeather: true, alertsEnabled: false, alertDuration: 60, temperatureThreshold: 85, windowMode: desktop ? 'widget' : 'station' };
+const defaults = { source: 'cpu', fanSelection: 'auto', launchAtLogin: false, pinned: false, reducedMotion: false, refreshInterval: 2000, stormThreshold: 90, theme: DEFAULT_THEME, brightness: 100, energySaving: true, smoothWeather: true, alertsEnabled: false, alertDuration: 60, temperatureThreshold: 85, windowMode: desktop ? 'widget' : 'station' };
 let preferences = { ...defaults };
 try { if (!desktop) preferences = { ...defaults, ...JSON.parse(localStorage.getItem('cirrus-preferences') || '{}') }; } catch {}
 if (!['cpu', 'gpu'].includes(preferences.source)) preferences.source = 'cpu';
@@ -164,11 +164,12 @@ async function savePreferences(patch) {
     if (demo && patch.source) { snapshot = makeDemo(demoWeather); seedDemoHistory(); }
     if (demo && patch.stormThreshold) { snapshot = makeDemo(demoWeather); seedDemoHistory(); }
     render();
-  } catch { toast('Could not save preferences. Please try again.'); }
+  } catch { syncPreferences(); toast('Could not save preferences. Please try again.'); }
 }
 
 function syncPreferences() {
   const theme = applyTheme(preferences.theme);
+  updateBrightness(preferences.brightness);
   $$('[data-theme-option]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.themeOption === theme.id)));
   $('#current-theme').textContent = theme.name;
   $$('[data-source]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.source === preferences.source)));
@@ -204,6 +205,14 @@ function syncPreferences() {
     $('#pin-setting-note').textContent = 'Available in the desktop app';
     $('#login-setting-note').textContent = 'Available in the desktop app';
   }
+}
+
+function updateBrightness(value) {
+  const brightness = Number.isFinite(value) ? Math.max(60, Math.min(100, value)) : 100;
+  $('#brightness-overlay').style.opacity = String((100 - brightness) / 100);
+  $('#setting-brightness').value = String(brightness);
+  $('#setting-brightness').setAttribute('aria-valuetext', `${brightness}%`);
+  $('#brightness-output').value = `${brightness}%`;
 }
 
 function setView(next) {
@@ -458,6 +467,8 @@ $('#export-history').addEventListener('click', exportHistory);
 $('#history-newer').addEventListener('click', () => { historyPage = Math.max(0, historyPage - 1); renderHistory(); });
 $('#history-older').addEventListener('click', () => { historyPage++; renderHistory(); });
 $$('[data-theme-option]').forEach(button => button.addEventListener('click', () => savePreferences({theme:button.dataset.themeOption})));
+$('#setting-brightness').addEventListener('input', event => updateBrightness(Number(event.target.value)));
+$('#setting-brightness').addEventListener('change', event => savePreferences({ brightness: Number(event.target.value) }));
 $('#setting-fan').addEventListener('change', async event => {
   await savePreferences({ fanSelection: event.target.value });
   if (desktop) { liveSnapshot = await window.weatherStation.getSnapshot(); if (!demo) snapshot = liveSnapshot; render(); }

@@ -2,7 +2,7 @@
 
 ## Runtime requirements
 
-Cirrus 1.2.4 targets Windows 10 / 11 x64. Electron bundles Chromium, Node.js and the application code. End users need no additional development runtime, account, API key, server or weather service. Normal observations work offline.
+Cirrus 1.2.5 targets Windows 10 / 11 x64. Electron bundles Chromium, Node.js and the application code. End users need no additional development runtime, account, API key, server or weather service. Normal observations work offline.
 
 | Feature | Source and requirements |
 | --- | --- |
@@ -17,7 +17,7 @@ Development requires Node.js 22.12+, npm and network access to download dependen
 
 ## Commit the next desktop edition
 
-The repository is [yeze5421/weather-forecast](https://github.com/yeze5421/weather-forecast). The next release is **1.2.4**, with a softer Daylight theme.
+The repository is [yeze5421/weather-forecast](https://github.com/yeze5421/weather-forecast). The next release is **1.2.5**, with adjustable window brightness.
 
 From the project directory:
 
@@ -25,7 +25,7 @@ From the project directory:
 git add -A
 git diff --cached --stat
 git diff --cached --name-only
-git commit -m "Soften Daylight theme"
+git commit -m "Add adjustable window brightness"
 git push
 ```
 
@@ -40,8 +40,8 @@ A tag matching package.json publishes the tested artifact in a public GitHub Rel
 After committing and pushing a new version:
 
 ```powershell
-git tag v1.2.4
-git push origin v1.2.4
+git tag v1.2.5
+git push origin v1.2.5
 gh run list --workflow windows.yml
 ```
 

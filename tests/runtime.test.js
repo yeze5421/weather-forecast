@@ -75,6 +75,8 @@ test('old preferences acquire safe upgrade defaults; invalid new IPC fields are 
   assert.equal(migrated.alertsEnabled, false);
   assert.equal(migrated.energySaving, true);
   assert.equal(migrated.windowMode, 'widget');
-  for (const patch of [{ energySaving: 1 }, { windowMode: 'shell' }, { alertDuration: 0 }, { temperatureThreshold: NaN }, { miniPosition: { x: Infinity, y: 1 } }]) assert.throws(() => normalizePreferences(patch));
+  assert.equal(migrated.brightness, 100);
+  assert.equal(normalizePreferences({ brightness: 75 }).brightness, 75);
+  for (const patch of [{ energySaving: 1 }, { windowMode: 'shell' }, { alertDuration: 0 }, { temperatureThreshold: NaN }, { brightness: 59 }, { brightness: 101 }, { brightness: '75' }, { miniPosition: { x: Infinity, y: 1 } }]) assert.throws(() => normalizePreferences(patch));
   assert.deepEqual(normalizePreferences({ miniPosition: { x: -1200, y: 30, privateField: 'ignored' } }).miniPosition, { x: -1200, y: 30 });
 });

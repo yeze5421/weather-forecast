@@ -149,6 +149,13 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .appearance-heading p { font-size: 10px; margin-top: 7px; }
 .current-theme { border: 1px solid var(--theme-border); border-radius: 20px; padding: 6px 10px; font-size: 10px; }
 .theme-options { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 10px; }
+.brightness-setting { display: flex; align-items: center; justify-content: space-between; gap: 20px; border-top: 1px solid var(--theme-border); margin-top: 20px; padding-top: 20px; }
+.brightness-setting label { display: block; color: var(--theme-text); font-size: 12px; }
+.brightness-setting small { display: block; color: var(--theme-muted); font-size: 10px; line-height: 1.6; margin-top: 7px; }
+.brightness-control { display: flex; align-items: center; gap: 10px; }
+.brightness-control input { width: 140px; accent-color: var(--theme-accent); }
+.brightness-control output { color: var(--theme-accent); min-width: 36px; font-size: 11px; font-variant-numeric: tabular-nums; }
+#brightness-overlay { position: fixed; inset: 0; z-index: 2147483647; background: #000; opacity: 0; pointer-events: none; }
 .theme-option { min-width: 0; text-align: left; padding: 8px; border: 1px solid var(--theme-border); border-radius: 11px; background: transparent; transition: border-color .18s, background .18s, transform .18s; }
 .theme-option:hover { background: var(--theme-raised); }
 .theme-option[aria-pressed=true] { border-color: var(--theme-accent); background: color-mix(in srgb,var(--theme-accent) 8%,var(--theme-surface)); }
@@ -168,3 +175,4 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .swatch-panels i { height: 12px; flex: 1; border-radius: 2px; background: var(--swatch-surface); }
 @container app (max-width:900px) { .theme-options { grid-template-columns: repeat(3,minmax(0,1fr)); } }
 @container app (max-width:620px) { .appearance-card { padding: 19px 17px; margin-bottom: 18px; } .appearance-heading { gap: 8px; } .appearance-heading p { font-size: 9px; } .theme-options { grid-template-columns: repeat(2,minmax(0,1fr)); } .theme-option small { font-size: 9px; } }
+@container app (max-width:620px) { .brightness-setting { gap: 10px; } .brightness-setting small { font-size: 9px; } .brightness-control input { width: 90px; } }

@@ -1,6 +1,6 @@
-# Cirrus v1.2.4 — Softer Daylight
+# Cirrus v1.2.5 — Adjustable Window Brightness
 
-- The Daylight theme now uses soft warm-gray backgrounds and gentler colors across the interface, history cards and weather scenes.
-- Primary, secondary and accent text continue to meet the theme contrast checks.
+- Drag the Window brightness slider in Settings → Appearance to dim the whole Cirrus window in real time.
+- The 60–100% setting is saved locally and shared across themes and window modes. It does not change the brightness of the display or other applications.
 
-Download Cirrus-Weather-1.2.4.exe for Windows 10 / 11 x64. Quit the previous Cirrus instance from its tray menu before launching the update. The EXE is unsigned; verify it with the attached SHA256.txt.
+Download Cirrus-Weather-1.2.5.exe for Windows 10 / 11 x64. Quit the previous Cirrus instance from its tray menu before launching the update. The EXE is unsigned; verify it with the attached SHA256.txt.

@@ -9,5 +9,9 @@ export function themePickerMarkup(icon) {
         <span class="theme-option-label"><b>${theme.name}</b>${icon('check')}</span><small>${theme.description}</small>
       </button>`).join('')}
     </div>
+    <div class="brightness-setting">
+      <div><label for="setting-brightness">Window brightness</label><small>Adjust the entire Cirrus window</small></div>
+      <div class="brightness-control"><input id="setting-brightness" type="range" min="60" max="100" step="1" value="100"><output id="brightness-output" for="setting-brightness">100%</output></div>
+    </div>
   </section>`;
 }

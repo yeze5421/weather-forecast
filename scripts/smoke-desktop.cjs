@@ -217,6 +217,22 @@ async function launch() {
     try { await window.weatherStation.savePreferences({ theme: '../../invalid' }); return false; } catch { return true; }
   });
   assert(invalidThemeRejected);
+  const brightness = page.locator('#setting-brightness');
+  await brightness.scrollIntoViewIfNeeded();
+  const slider = await brightness.boundingBox();
+  await page.mouse.move(slider.x + slider.width - 8, slider.y + slider.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(slider.x + slider.width / 2, slider.y + slider.height / 2, { steps: 8 });
+  await page.mouse.up();
+  const selectedBrightness = Number(await brightness.inputValue());
+  assert(selectedBrightness > 60 && selectedBrightness < 100);
+  await page.waitForFunction(async value => (await window.weatherStation.getPreferences()).brightness === value, selectedBrightness);
+  assert(Math.abs(Number(await page.locator('#brightness-overlay').evaluate(e => getComputedStyle(e).opacity)) - (100 - selectedBrightness) / 100) < 0.01);
+  assert.equal(await page.locator('#brightness-overlay').evaluate(e => getComputedStyle(e).pointerEvents), 'none');
+  await page.locator('[data-theme-option="forest"]').click();
+  await page.waitForFunction(() => document.documentElement.dataset.theme === 'forest');
+  assert.equal(Number(await brightness.inputValue()), selectedBrightness);
+  check('mouse drag adjusts and saves window brightness across themes');
   await page.locator('nav [data-view="overview"]').click();
   check('all five themes switch through settings, update native colors and reject invalid IDs');
 
@@ -299,6 +315,7 @@ async function launch() {
 
   await page.locator('#mini-button').click();
   await page.waitForFunction(() => innerWidth === 320 && document.body.classList.contains('mini-mode'));
+  assert(Math.abs(Number(await page.locator('#brightness-overlay').evaluate(e => getComputedStyle(e).opacity)) - (100 - selectedBrightness) / 100) < 0.01);
   assert.equal(await page.locator('.mini-widget').isVisible(), true);
   const miniLayout = await page.evaluate(() => ({ width: innerWidth, height: innerHeight, scrollWidth: document.documentElement.scrollWidth, scrollHeight: document.documentElement.scrollHeight }));
   assert.equal(miniLayout.height, 210);
@@ -355,10 +372,12 @@ async function launch() {
   assert.equal(restored.reducedMotion, true);
   assert.equal(restored.launchAtLogin, false);
   assert.equal(restored.theme, 'forest');
+  assert.equal(restored.brightness, selectedBrightness);
+  assert(Math.abs(Number(await page.locator('#brightness-overlay').evaluate(e => getComputedStyle(e).opacity)) - (100 - selectedBrightness) / 100) < 0.01);
   assert.equal(await page.evaluate(() => document.documentElement.dataset.theme), 'forest');
   check('preferences persist across process relaunch');
   assert.deepEqual(pageErrors, []);
-  await page.evaluate(() => window.weatherStation.savePreferences({ source: 'cpu', launchAtLogin: false, pinned: false, reducedMotion: false, refreshInterval: 2000, stormThreshold: 90, theme: 'midnight', windowMode: 'widget', alertsEnabled: false, energySaving: true }));
+  await page.evaluate(() => window.weatherStation.savePreferences({ source: 'cpu', launchAtLogin: false, pinned: false, reducedMotion: false, refreshInterval: 2000, stormThreshold: 90, theme: 'midnight', brightness: 100, windowMode: 'widget', alertsEnabled: false, energySaving: true }));
   const result = { passed: checks.length, checks, snapshot, webPreferences, compactLayout, expandedLayout, layoutIssues, screenshots: ['desktop-compact.png', 'desktop-storm.png', 'desktop-expanded.png'], timestamp: new Date().toISOString() };
   fs.writeFileSync(path.join(artifacts, 'desktop-smoke-results.json'), JSON.stringify(result, null, 2));
   console.log(JSON.stringify({ passed: result.passed, checks, compactLayout, expandedLayout, layoutIssues, screenshots: result.screenshots }, null, 2));
