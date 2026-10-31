@@ -110,6 +110,18 @@ async function launch() {
   await page.locator('#return-live').click();
   assert.equal(await page.locator('#connection-label').textContent(), 'Live');
   check('rain and storm previews are labelled and return to live');
+  const rainbowSample = await page.evaluate(async () => {
+    const sample = await window.weatherStation.getSnapshot();
+    sample.weather = { id: 'sunny', source: 'cpu', reason: 'load', rainbow: true };
+    return sample;
+  });
+  await desktop.evaluate(({ BrowserWindow }, sample) => BrowserWindow.getAllWindows()[0].webContents.send('weather:snapshot-changed', sample), rainbowSample);
+  await page.waitForFunction(() => document.querySelector('.weather-card .weather-scene').dataset.rainbow === 'true');
+  assert.match(await page.locator('#weather-description').textContent(), /rainbow/i);
+  assert.equal(await page.locator('.weather-card .weather-scene').getAttribute('data-weather'), 'sunny');
+  assert(Number(await page.locator('.weather-card .ws-rainbow').evaluate(e => getComputedStyle(e).opacity)) > 0);
+  await page.screenshot({ path: path.join(artifacts, 'desktop-rainbow.png') });
+  check('rainbow appears on a sunny live snapshot without changing its weather');
   await page.evaluate(() => window.weatherStation.savePreferences({ reducedMotion: false }));
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await page.locator('#preview-toggle').click();
@@ -224,11 +236,19 @@ async function launch() {
   await page.mouse.down();
   await page.mouse.move(slider.x + slider.width / 2, slider.y + slider.height / 2, { steps: 8 });
   await page.mouse.up();
-  const selectedBrightness = Number(await brightness.inputValue());
+  let selectedBrightness = Number(await brightness.inputValue());
   assert(selectedBrightness > 60 && selectedBrightness < 100);
   await page.waitForFunction(async value => (await window.weatherStation.getPreferences()).brightness === value, selectedBrightness);
   assert(Math.abs(Number(await page.locator('#brightness-overlay').evaluate(e => getComputedStyle(e).opacity)) - (100 - selectedBrightness) / 100) < 0.01);
   assert.equal(await page.locator('#brightness-overlay').evaluate(e => getComputedStyle(e).pointerEvents), 'none');
+  await page.mouse.click(slider.x + slider.width - 1, slider.y + slider.height / 2);
+  await page.waitForFunction(async () => (await window.weatherStation.getPreferences()).brightness === 120);
+  assert.equal(await page.locator('#app').evaluate(e => getComputedStyle(e).filter), 'brightness(1.2)');
+  assert.equal(Number(await page.locator('#brightness-overlay').evaluate(e => getComputedStyle(e).opacity)), 0);
+  await page.mouse.click(slider.x + slider.width / 2, slider.y + slider.height / 2);
+  await page.waitForFunction(async () => (await window.weatherStation.getPreferences()).brightness < 100);
+  selectedBrightness = (await page.evaluate(() => window.weatherStation.getPreferences())).brightness;
+  await page.waitForFunction(value => Number(document.querySelector('#setting-brightness').value) === value, selectedBrightness);
   await page.locator('[data-theme-option="forest"]').click();
   await page.waitForFunction(() => document.documentElement.dataset.theme === 'forest');
   assert.equal(Number(await brightness.inputValue()), selectedBrightness);
@@ -313,9 +333,10 @@ async function launch() {
   await page.waitForFunction(() => document.querySelector('#fan-detail').textContent.length > 15);
   check('sleep invalidates readings, resume reconnects and manual retry is rate limited');
 
+  await page.evaluate(() => window.weatherStation.savePreferences({ brightness: 120 }));
   await page.locator('#mini-button').click();
   await page.waitForFunction(() => innerWidth === 320 && document.body.classList.contains('mini-mode'));
-  assert(Math.abs(Number(await page.locator('#brightness-overlay').evaluate(e => getComputedStyle(e).opacity)) - (100 - selectedBrightness) / 100) < 0.01);
+  assert.equal(await page.locator('#app').evaluate(e => getComputedStyle(e).filter), 'brightness(1.2)');
   assert.equal(await page.locator('.mini-widget').isVisible(), true);
   const miniLayout = await page.evaluate(() => ({ width: innerWidth, height: innerHeight, scrollWidth: document.documentElement.scrollWidth, scrollHeight: document.documentElement.scrollHeight }));
   assert.equal(miniLayout.height, 210);
@@ -342,6 +363,7 @@ async function launch() {
   assert.equal(restoredMini.y, miniPosition.y);
   await page.locator('#mini-open').click();
   await page.waitForFunction(() => innerWidth > 700 && !document.body.classList.contains('mini-mode'));
+  await page.evaluate(value => window.weatherStation.savePreferences({ brightness: value }), selectedBrightness);
   check('mini desktop fits, stays open on blur, switches source and restores its dragged position');
 
   await page.locator('nav [data-view="settings"]').click();

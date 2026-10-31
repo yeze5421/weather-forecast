@@ -17,7 +17,7 @@ function normalizePreferences(patch, base = defaults) {
   for (const [key, allowed] of Object.entries({ refreshInterval: [1000, 2000, 5000, 10000], alertDuration: [30, 60, 120], windowMode: ['mini', 'widget', 'station'] })) {
     if (key in patch) { if (!allowed.includes(patch[key])) throw new TypeError(`Invalid ${key}`); next[key] = patch[key]; }
   }
-  for (const [key, min, max] of [['stormThreshold', 70, 99], ['temperatureThreshold', 60, 100], ['brightness', 60, 100]]) {
+  for (const [key, min, max] of [['stormThreshold', 70, 99], ['temperatureThreshold', 60, 100], ['brightness', 60, 120]]) {
     if (key in patch) { if (!Number.isFinite(patch[key]) || patch[key] < min || patch[key] > max) throw new TypeError(`Invalid ${key}`); next[key] = Math.round(patch[key]); }
   }
   if ('miniPosition' in patch) {

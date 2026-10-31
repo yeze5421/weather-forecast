@@ -2,7 +2,7 @@
 
 **A Windows tray widget that turns CPU/GPU load into animated weather, high memory use into thunderstorms, and fan speed into wind — entirely offline.**
 
-**[Download v1.2.4 for Windows — portable .exe](https://github.com/yeze5421/weather-forecast/releases/download/v1.2.4/Cirrus-Weather-1.2.4.exe)** · [SHA-256](https://github.com/yeze5421/weather-forecast/releases/download/v1.2.4/SHA256.txt) · [Release notes](https://github.com/yeze5421/weather-forecast/releases/tag/v1.2.4)
+**[Download v1.2.5 for Windows — portable .exe](https://github.com/yeze5421/weather-forecast/releases/download/v1.2.5/Cirrus-Weather-1.2.5.exe)** · [SHA-256](https://github.com/yeze5421/weather-forecast/releases/download/v1.2.5/SHA256.txt) · [Release notes](https://github.com/yeze5421/weather-forecast/releases/tag/v1.2.5)
 
 Windows 10 / 11 · x64 · No installation or account required · MIT License
 
@@ -14,7 +14,7 @@ Windows 10 / 11 · x64 · No installation or account required · MIT License
 
 **[Download the latest release](https://github.com/yeze5421/weather-forecast/releases/latest)** for Windows 10 / 11 x64. Download the `.exe` attachment and double-click it. Node.js, Python, .NET, accounts, API keys and servers are not required.
 
-This checkout is **1.2.5 — Adjustable Window Brightness**. Its local portable build is `release/Cirrus-Weather-1.2.5.exe`; `Launch-Cirrus.cmd` opens the most recently built portable executable. GitHub's automatic Source code archives contain source files and require the development setup below.
+This checkout is **1.2.6 — Rainbow After Rain**. Its local portable build is `release/Cirrus-Weather-1.2.6.exe`; `Launch-Cirrus.cmd` opens the most recently built portable executable. GitHub's automatic Source code archives contain source files and require the development setup below.
 
 - Left-click the tray weather icon to open or hide the widget.
 - Right-click to select CPU / GPU weather, toggle Always on top, or Quit Cirrus.
@@ -39,7 +39,7 @@ The current executable is unsigned. Windows may show an unknown publisher or Sma
 
 Fan RPM controls the windmill and wind animation. Missing RPM readings leave the windmill still and the value blank. Weather describes current computer activity; it does not predict future load or real-world weather.
 
-**Smooth weather** is on by default. Live skies use readings from the last six seconds, a four-second change hold and a three-point recovery margin. Memory storms take priority after a three-second hold; once a storm starts, memory must fall at least three percentage points below the threshold before recovery begins. The first available reading initializes the sky immediately. Numeric readings and history remain raw. Turning smoothing off uses the table directly; Preview always changes immediately. The tray and window share the same live weather state.
+**Smooth weather** is on by default. Live skies use readings from the last six seconds, a four-second change hold and a three-point recovery margin. Memory storms take priority after a three-second hold; once a storm starts, memory must fall at least three percentage points below the threshold before recovery begins. The first available reading initializes the sky immediately. Numeric readings and history remain raw. Turning smoothing off uses the table directly; Preview always changes immediately. The tray and window share the same live weather state. After more than an hour of continuous live rain or thunderstorm, a rainbow appears for up to five minutes when the sky turns sunny, including after a cloudy transition of up to ten minutes. The rainbow is a visual detail; it does not change the actual weather state or readings. Sleep, missing readings, source changes and long sensor gaps reset its timer.
 
 ## A quieter desktop companion
 
@@ -72,7 +72,7 @@ Fan RPM controls the windmill and wind animation. Missing RPM readings leave the
 
 ## Themes
 
-Choose **Midnight**, **Obsidian**, **Forest**, **Ember** or **Daylight** in Settings → Appearance, or from the tray menu. Each theme colors the whole interface, charts, clouds and landscape. Daylight uses a soft warm-gray palette. The Window brightness slider dims the entire Cirrus window, from 60% to 100%, without changing system display brightness; the setting is saved locally and applies to all themes and window modes. Your choice is saved locally and restored on the next launch. Midnight is the default.
+Choose **Midnight**, **Obsidian**, **Forest**, **Ember** or **Daylight** in Settings → Appearance, or from the tray menu. Each theme colors the whole interface, charts, clouds and landscape. Daylight uses a soft warm-gray palette. The Window brightness slider dims the entire Cirrus window, from 60% to 120%, without changing system display brightness; the setting is saved locally and applies to all themes and window modes. Your choice is saved locally and restored on the next launch. Midnight is the default.
 
 ## Preview
 
@@ -111,7 +111,7 @@ Preferences live in `preferences.json` under the current user's Cirrus applicati
 
 ## Update GitHub
 
-The Windows workflow tests and builds pushes to `main`, pull requests and manual runs. Push a matching version tag, such as `v1.2.4`, to run the same checks, test the packaged desktop, generate SHA-256 and publish the tested EXE as a GitHub Release. A normal push creates a downloadable workflow artifact; a version tag publishes a public Release. Only the EXE, checksum and release notes enter the build artifact. See [PUBLISHING.md](PUBLISHING.md) and [RELEASE_NOTES.md](RELEASE_NOTES.md).
+The Windows workflow tests and builds pushes to `main`, pull requests and manual runs. Push a matching version tag, such as `v1.2.5`, to run the same checks, test the packaged desktop, generate SHA-256 and publish the tested EXE as a GitHub Release. A normal push creates a downloadable workflow artifact; a version tag publishes a public Release. Only the EXE, checksum and release notes enter the build artifact. See [PUBLISHING.md](PUBLISHING.md) and [RELEASE_NOTES.md](RELEASE_NOTES.md).
 
 Local `artifacts/` contains hardware test readings, screenshots and browser profiles. Build diagnostics in `release/` may include local paths. These directories are excluded from Git and must not be uploaded as a whole.
 

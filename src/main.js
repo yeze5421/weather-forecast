@@ -208,8 +208,9 @@ function syncPreferences() {
 }
 
 function updateBrightness(value) {
-  const brightness = Number.isFinite(value) ? Math.max(60, Math.min(100, value)) : 100;
-  $('#brightness-overlay').style.opacity = String((100 - brightness) / 100);
+  const brightness = Number.isFinite(value) ? Math.max(60, Math.min(120, value)) : 100;
+  $('#brightness-overlay').style.opacity = String(Math.max(0, (100 - brightness) / 100));
+  $('#app').style.filter = brightness > 100 ? `brightness(${brightness / 100})` : '';
   $('#setting-brightness').value = String(brightness);
   $('#setting-brightness').setAttribute('aria-valuetext', `${brightness}%`);
   $('#brightness-output').value = `${brightness}%`;
@@ -329,7 +330,8 @@ function render() {
   $('#gpu-temperature').textContent = hasTemperature ? `${number(temperature)} °C` : '—';
   $('#thermal-note').textContent = hasTemperature ? (demo ? 'Demo temperature' : 'NVIDIA GPU sensor') : 'Temperature unavailable on this sensor';
   $('.thermal-strip').classList.toggle('is-hot', hasTemperature && temperature >= preferences.temperatureThreshold);
-  $('#mini-weather').textContent = state.label;
+  const rainbow = !demo && weather === 'sunny' && Boolean(stable?.rainbow);
+  $('#mini-weather').textContent = rainbow ? 'Rainbow after rain' : state.label;
   $('#mini-usage').textContent = formatPercent(load);
   $('#mini-sensor').textContent = `${preferences.source.toUpperCase()} usage`;
   $('#mini-source').textContent = preferences.source.toUpperCase();
@@ -340,7 +342,7 @@ function render() {
   renderDiagnostics();
   $('.weather-card').dataset.weather = weather;
   $('#weather-title').textContent = state.label;
-  $('#weather-description').textContent = state.description;
+  $('#weather-description').textContent = rainbow ? 'A little rainbow after the rain.' : state.description;
   $('#weather-advice').textContent = state.advice;
   $('#weather-kicker').textContent = state.reason === 'memory' ? 'MEMORY PRESSURE RISING' : 'WEATHER RIGHT NOW';
   $('#hero-load').innerHTML = `${number(load)}${load !== null ? '<em>%</em>' : ''}`;
@@ -382,7 +384,7 @@ function render() {
   $('.mini-tray .icon').outerHTML = icon(weatherIcon(weather));
   $('#updated-at').textContent = snapshot ? `${demo ? 'Preview data' : 'Updated'} ${time(snapshot.timestamp)}` : 'Awaiting the first reading';
   $$('[data-demo]').forEach(button => button.setAttribute('aria-pressed', String(demo && button.dataset.demo === demoWeather)));
-  $$('.weather-scene').forEach(scene => updateWeatherScene(scene, weather, rpm ?? null, { reducedMotion: preferences.reducedMotion }));
+  $$('.weather-scene').forEach(scene => updateWeatherScene(scene, weather, rpm ?? null, { reducedMotion: preferences.reducedMotion, rainbow }));
   if (preferences.windowMode === 'mini') return;
   renderChart();
   if (view === 'history') renderHistory();

@@ -35,6 +35,14 @@ export function weatherSceneMarkup() {
     </defs>
     <g clip-path="url(#${id}-clip)">
       <path fill="url(#${id}-sky)" d="M0 0h640v260H0z"/>
+      <g class="ws-rainbow" fill="none" stroke-width="5" stroke-linecap="round" aria-hidden="true">
+        <path d="M206 207a152 152 0 0 1 304 0" stroke="#e99b9d"/>
+        <path d="M212 207a146 146 0 0 1 292 0" stroke="#efbe88"/>
+        <path d="M218 207a140 140 0 0 1 280 0" stroke="#ecd38c"/>
+        <path d="M224 207a134 134 0 0 1 268 0" stroke="#a9cba9"/>
+        <path d="M230 207a128 128 0 0 1 256 0" stroke="#9bbfd5"/>
+        <path d="M236 207a122 122 0 0 1 244 0" stroke="#b0a6d2"/>
+      </g>
       <g class="ws-sun">
         <circle cx="452" cy="91" r="99" fill="url(#${id}-halo)"/>
         <circle cx="452" cy="91" r="58" stroke="#EBC48A" stroke-opacity=".18"/>
@@ -110,15 +118,16 @@ const labels = {
   unknown: 'Awaiting readings from the desktop weather station',
 };
 
-export function updateWeatherScene(container, weatherId, fanRpm, { reducedMotion = false } = {}) {
+export function updateWeatherScene(container, weatherId, fanRpm, { reducedMotion = false, rainbow = false } = {}) {
   if (!container) return;
   const weather = Object.hasOwn(labels, weatherId) ? weatherId : 'unknown';
   container.dataset.weather = weather;
+  container.dataset.rainbow = String(weather === 'sunny' && Boolean(rainbow));
   container.dataset.reducedMotion = String(Boolean(reducedMotion));
   const hasFan = typeof fanRpm === 'number' && Number.isFinite(fanRpm) && fanRpm >= 0;
   container.dataset.wind = hasFan && fanRpm > 0 ? 'moving' : 'still';
   // A readable visual representation of fan speed, rather than literal blade RPM.
   const seconds = hasFan && fanRpm > 0 ? Math.min(12, Math.max(0.8, 3000 / fanRpm)) : 12;
   container.style.setProperty('--fan-duration', `${seconds.toFixed(2)}s`);
-  container.querySelector('.ws-landscape')?.setAttribute('aria-label', labels[weather]);
+  container.querySelector('.ws-landscape')?.setAttribute('aria-label', weather === 'sunny' && rainbow ? 'A rainbow after the rain over the desktop weather station' : labels[weather]);
 }

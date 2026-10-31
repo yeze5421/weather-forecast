@@ -20,6 +20,8 @@
 .ws-hill-mid { fill: var(--hill-mid); transition: fill 1.4s ease; }
 .ws-hill-top { stop-color: var(--hill-top); transition: stop-color 1.4s ease; }
 .ws-hill-bottom { stop-color: var(--hill-bottom); transition: stop-color 1.4s ease; }
+.ws-rainbow { opacity: 0; transition: opacity 2s ease; }
+.weather-scene[data-rainbow="true"] .ws-rainbow { opacity: .78; }
 .ws-sun { transform-origin: 452px 91px; transition: opacity 1.5s ease; animation: ws-sun-breathe 9s ease-in-out infinite; }
 .ws-cloud-front { opacity: .2; transform: translate(20px, 24px) scale(.88); transform-origin: 400px 140px; transition: opacity 1.6s ease, transform 1.6s ease; }
 .ws-cloud-back { opacity: 0; transition: opacity 1.6s ease; }

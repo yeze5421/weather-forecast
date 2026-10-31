@@ -10,6 +10,7 @@ const themes = require('../shared/themes.json');
 const { defaults, normalizePreferences } = require('./settings.cjs');
 const { samplingPolicy } = require('./runtime-policy.cjs');
 const { WeatherController } = require('../shared/weather-state.cjs');
+const { RainbowController } = require('../shared/rainbow.cjs');
 const { AlertMonitor } = require('./alerts.cjs');
 const { recordHistory } = require('./history.cjs');
 
@@ -31,6 +32,8 @@ let lastRetry = 0;
 let notificationStatus = 'Off';
 const power = { locked: false, battery: false };
 const weatherController = new WeatherController();
+const rainbowController = new RainbowController();
+const rainbowKey = () => `${preferences.source}:${preferences.stormThreshold}:${preferences.smoothWeather}`;
 const alertMonitor = new AlertMonitor();
 const history = [];
 const notifications = new Set();
@@ -45,6 +48,7 @@ function writePreferences() {
 function currentSnapshot() {
   const snapshot = sampler.getSnapshot();
   snapshot.weather = weatherController.update(snapshot, preferences.source, preferences.stormThreshold, preferences.smoothWeather);
+  snapshot.weather.rainbow = rainbowController.active(snapshot.weather.id, snapshot.timestamp, rainbowKey());
   snapshot.notificationStatus = notificationStatus;
   return snapshot;
 }
@@ -291,6 +295,7 @@ if (!app.requestSingleInstanceLock()) {
     sampler.start();
     sampler.on('snapshot', snapshot => {
       snapshot.weather = weatherController.update(snapshot, preferences.source, preferences.stormThreshold, preferences.smoothWeather);
+      snapshot.weather.rainbow = rainbowController.update(snapshot.weather.id, snapshot.timestamp, rainbowKey());
       snapshot.notificationStatus = notificationStatus;
       recordHistory(history, snapshot);
       updateTray(snapshot);
@@ -306,8 +311,8 @@ if (!app.requestSingleInstanceLock()) {
     powerMonitor.on('unlock-screen', () => { power.locked = false; updatePolicy(); if (window?.isVisible()) window.webContents.send('weather:snapshot-changed', currentSnapshot()); });
     powerMonitor.on('on-battery', () => { power.battery = true; updatePolicy(); });
     powerMonitor.on('on-ac', () => { power.battery = false; updatePolicy(); });
-    powerMonitor.on('suspend', () => { sampler.suspend(); weatherController.reset(); alertMonitor.clearPending(); });
-    powerMonitor.on('resume', () => { sampler.resume(); weatherController.reset(); alertMonitor.clearPending(); updatePolicy(); });
+    powerMonitor.on('suspend', () => { sampler.suspend(); weatherController.reset(); rainbowController.reset(); alertMonitor.clearPending(); });
+    powerMonitor.on('resume', () => { sampler.resume(); weatherController.reset(); rainbowController.reset(); alertMonitor.clearPending(); updatePolicy(); });
     screen.on('display-metrics-changed', () => { if (window?.isVisible()) positionWindow(false); });
     app.on('activate', () => showWindow());
   }).catch(error => {
