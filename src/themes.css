@@ -11,7 +11,7 @@
 }
 body { background: var(--theme-bg); color: var(--theme-text); }
 .sidebar, .metric-card, .trend-card, .interpretation-card, .legend-card,
-.records-card, .settings-card, .appearance-card, .popover {
+.records-card, .history-stats article, .settings-card, .appearance-card, .popover {
   background: var(--theme-surface); border-color: var(--theme-border);
 }
 .topbar { background: var(--theme-bg); border-color: var(--theme-border); }
@@ -79,6 +79,7 @@ body { background: var(--theme-bg); color: var(--theme-text); }
 .return-live { color: var(--theme-accent); }
 .browser-note { border-color: var(--theme-border); }
 .secondary-button { color: var(--theme-accent); background: var(--theme-raised); border-color: var(--theme-border); }
+.secondary-button:hover { background: color-mix(in srgb, var(--theme-accent) 12%, var(--theme-raised)); }
 th { background: var(--theme-raised); color: var(--theme-muted); }
 td, .table-weather { color: var(--theme-muted); }
 .setting-row select { background: var(--theme-raised); color: var(--theme-text); border-color: var(--theme-border); }
@@ -93,6 +94,30 @@ td, .table-weather { color: var(--theme-muted); }
 .toast { background: var(--theme-raised); color: var(--theme-text); border-color: var(--theme-border); box-shadow: 0 10px 40px #0004; }
 .chart-empty, .chart-empty span { color: var(--theme-muted); }
 button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible { outline-color: var(--theme-accent); }
+
+/* Keep the light landscape calm across weather states and mini mode. */
+[data-color-scheme=light] .weather-scene {
+  --sky-top: var(--theme-sceneTop); --sky-bottom: var(--theme-sceneBottom);
+  --cloud-top: var(--theme-cloudTop); --cloud-bottom: var(--theme-cloudBottom);
+  --hill-far: var(--theme-hillFar); --hill-mid: var(--theme-hillMid);
+  --hill-top: var(--theme-hillTop); --hill-bottom: var(--theme-hillBottom);
+}
+[data-color-scheme=light] .weather-scene[data-weather=cloudy] {
+  --sky-top: color-mix(in srgb, var(--theme-sceneTop) 80%, #c1c7d6);
+  --sky-bottom: color-mix(in srgb, var(--theme-sceneBottom) 85%, #d1d3dc);
+}
+[data-color-scheme=light] .weather-scene[data-weather=rainy] {
+  --sky-top: color-mix(in srgb, var(--theme-sceneTop) 65%, #a4b6c9);
+  --sky-bottom: color-mix(in srgb, var(--theme-sceneBottom) 70%, #bdc9d0);
+  --cloud-top: #cbd3dc; --cloud-bottom: #aebdca;
+}
+[data-color-scheme=light] .weather-scene[data-weather=storm] {
+  --sky-top: color-mix(in srgb, var(--theme-sceneTop) 60%, #aca9c2);
+  --sky-bottom: color-mix(in srgb, var(--theme-sceneBottom) 70%, #c2bccd);
+  --cloud-top: #c2bfd2; --cloud-bottom: #a4a5bd;
+}
+[data-color-scheme=light] .weather-scene[data-weather=unknown] { --sky-top: var(--theme-bg); --sky-bottom: var(--theme-raised); }
+[data-color-scheme=light] .ws-high-cloud { fill: var(--theme-cloudTop); }
 
 /* A true night palette for every weather state, including the hills and clouds. */
 [data-color-scheme=dark] .weather-scene {

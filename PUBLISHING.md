@@ -2,7 +2,7 @@
 
 ## Runtime requirements
 
-Cirrus 1.2.3 targets Windows 10 / 11 x64. Electron bundles Chromium, Node.js and the application code. End users need no additional development runtime, account, API key, server or weather service. Normal observations work offline.
+Cirrus 1.2.4 targets Windows 10 / 11 x64. Electron bundles Chromium, Node.js and the application code. End users need no additional development runtime, account, API key, server or weather service. Normal observations work offline.
 
 | Feature | Source and requirements |
 | --- | --- |
@@ -15,9 +15,9 @@ Cirrus itself installs no drivers, changes no fan settings, and requires no admi
 
 Development requires Node.js 22.12+, npm and network access to download dependencies. Use `npm ci`, `npm test` and `npm run dist` on Windows. If the official Electron distribution is already available locally, `npm run dist -- --config.electronDist=node_modules/electron/dist` can reuse it.
 
-## Commit the quieter desktop edition
+## Commit the next desktop edition
 
-The repository is [yeze5421/weather-forecast](https://github.com/yeze5421/weather-forecast). The next release is **1.2.3**, with fan selection and 24-hour session history.
+The repository is [yeze5421/weather-forecast](https://github.com/yeze5421/weather-forecast). The next release is **1.2.4**, with a softer Daylight theme.
 
 From the project directory:
 
@@ -25,7 +25,7 @@ From the project directory:
 git add -A
 git diff --cached --stat
 git diff --cached --name-only
-git commit -m "Add fan selection and 24-hour history"
+git commit -m "Soften Daylight theme"
 git push
 ```
 
@@ -40,8 +40,8 @@ A tag matching package.json publishes the tested artifact in a public GitHub Rel
 After committing and pushing a new version:
 
 ```powershell
-git tag v1.2.3
-git push origin v1.2.3
+git tag v1.2.4
+git push origin v1.2.4
 gh run list --workflow windows.yml
 ```
 

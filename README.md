@@ -16,7 +16,7 @@ Windows 10 / 11 · x64 · No installation or account required · MIT License
 
 **[Download the latest release](https://github.com/yeze5421/weather-forecast/releases/latest)** for Windows 10 / 11 x64. Download the `.exe` attachment and double-click it. Node.js, Python, .NET, accounts, API keys and servers are not required.
 
-This checkout is **1.2.3 — Fan Selection and 24-Hour History**. Its local portable build is `release/Cirrus-Weather-1.2.3.exe`; `Launch-Cirrus.cmd` opens the most recently built portable executable. GitHub's automatic Source code archives contain source files and require the development setup below.
+This checkout is **1.2.4 — Softer Daylight**. Its local portable build is `release/Cirrus-Weather-1.2.4.exe`; `Launch-Cirrus.cmd` opens the most recently built portable executable. GitHub's automatic Source code archives contain source files and require the development setup below.
 
 - Left-click the tray weather icon to open or hide the widget.
 - Right-click to select CPU / GPU weather, toggle Always on top, or Quit Cirrus.
@@ -74,7 +74,7 @@ Fan RPM controls the windmill and wind animation. Missing RPM readings leave the
 
 ## Themes
 
-Choose **Midnight**, **Obsidian**, **Forest**, **Ember** or **Daylight** in Settings → Appearance, or from the tray menu. Each theme colors the whole interface, charts, clouds and landscape. Your choice is saved locally and restored on the next launch. Midnight is the default.
+Choose **Midnight**, **Obsidian**, **Forest**, **Ember** or **Daylight** in Settings → Appearance, or from the tray menu. Each theme colors the whole interface, charts, clouds and landscape. Daylight uses a soft warm-gray palette. Your choice is saved locally and restored on the next launch. Midnight is the default.
 
 ## Preview
 
