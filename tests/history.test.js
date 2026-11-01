@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { recordHistory, HISTORY_MS, HISTORY_INTERVAL_MS, MAX_HISTORY_SAMPLES } from '../electron/history.cjs';
 
-const sample = timestamp => ({ timestamp, cpu: { usage: 40, name: 'private hardware name' }, gpu: { usage: 20, temperature: 50 }, memory: { usage: 30, usedGB: 3, totalGB: 10 }, fan: { rpm: 500 }, weather: { id: 'cloudy', source: 'cpu' }, sensors: { private: 'not saved' } });
+const sample = timestamp => ({ timestamp, cpu: { usage: 40, temperature: 64, name: 'private hardware name' }, gpu: { usage: 20, temperature: 50 }, memory: { usage: 30, usedGB: 3, totalGB: 10 }, fan: { rpm: 500 }, weather: { id: 'cloudy', source: 'cpu' }, sensors: { private: 'not saved' } });
 
 test('session history retains a full 24 hours at 10-second intervals and expires older readings', () => {
   const history = [];
@@ -16,6 +16,7 @@ test('session history retains a full 24 hours at 10-second intervals and expires
   assert.equal(history.at(-1).timestamp, HISTORY_MS + HISTORY_INTERVAL_MS);
   assert.equal(history.length, MAX_HISTORY_SAMPLES);
   assert.equal(history[0].cpu.name, undefined);
+  assert.equal(history[0].cpu.temperature, 64);
   assert.equal(history[0].sensors, undefined);
 });
 

@@ -1,6 +1,6 @@
 .thermal-strip { display:flex; justify-content:space-between; gap:10px; margin:0 0 16px; padding:9px 12px; border:1px solid var(--theme-border); border-radius:9px; background:var(--theme-surface); color:var(--theme-muted); font-size:10px; }
 .thermal-strip strong { color:var(--theme-text); font-weight:500; margin-left:6px; }
-.thermal-strip.is-hot strong { color:#ffb17b; }
+.thermal-strip.is-hot #gpu-temperature { color:#ffb17b; }
 .upgrades-settings, .diagnostics-card { margin-top:22px; }
 .diagnostic-heading { display:flex; justify-content:space-between; align-items:center; gap:16px; }
 .diagnostic-note { color:var(--theme-muted); font-size:10px; line-height:1.7; margin-top:12px; }

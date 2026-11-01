@@ -69,10 +69,10 @@ export function deriveWeather(snapshot, source = 'cpu', stormThreshold = 90) {
 }
 
 const DEMO_READINGS = Object.freeze({
-  sunny: { load: 18, memory: 42, fan: 920, temperature: 38 },
-  cloudy: { load: 56, memory: 61, fan: 1680, temperature: 54 },
-  rainy: { load: 94, memory: 76, fan: 2460, temperature: 73 },
-  storm: { load: 67, memory: 96, fan: 2080, temperature: 62 },
+  sunny: { load: 18, memory: 42, fan: 920, temperature: 38, cpuTemperature: 40 },
+  cloudy: { load: 56, memory: 61, fan: 1680, temperature: 54, cpuTemperature: 58 },
+  rainy: { load: 94, memory: 76, fan: 2460, temperature: 73, cpuTemperature: 76 },
+  storm: { load: 67, memory: 96, fan: 2080, temperature: 62, cpuTemperature: 65 },
 });
 
 /** Explicitly labelled, deterministic samples for the weather preview only. */
@@ -82,7 +82,7 @@ export function createDemoSnapshot(weatherId = 'sunny', source = 'cpu', timestam
   const totalGB = 32;
   return {
     timestamp: typeof timestamp === 'number' && Number.isFinite(timestamp) ? timestamp : Date.now(),
-    cpu: { usage: selected === 'cpu' ? reading.load : Math.round(reading.load * 0.6), name: 'Demo CPU · 8 cores' },
+    cpu: { usage: selected === 'cpu' ? reading.load : Math.round(reading.load * 0.6), name: 'Demo CPU · 8 cores', temperature: reading.cpuTemperature },
     gpu: { usage: selected === 'gpu' ? reading.load : Math.round(reading.load * 0.35), name: 'Demo GPU', temperature: reading.temperature },
     memory: { usage: reading.memory, usedGB: Number((totalGB * reading.memory / 100).toFixed(1)), totalGB },
     fan: { rpm: reading.fan, source: 'Demo sensor' },

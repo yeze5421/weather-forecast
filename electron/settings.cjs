@@ -10,7 +10,7 @@ function normalizePreferences(patch, base = defaults) {
   const next = { ...base };
   if ('theme' in patch) { if (!themeIds.has(patch.theme)) throw new TypeError('Unknown color theme'); next.theme = patch.theme; }
   if ('source' in patch) { if (!['cpu', 'gpu'].includes(patch.source)) throw new TypeError('Unknown weather source'); next.source = patch.source; }
-  if ('fanSelection' in patch) { if (typeof patch.fanSelection !== 'string' || !/^(auto|nvml:\d{1,2}:\d{1,2}|wmi:(LibreHardwareMonitor|OpenHardwareMonitor):[a-f0-9]{64})$/.test(patch.fanSelection)) throw new TypeError('Invalid fan selection'); next.fanSelection = patch.fanSelection; }
+  if ('fanSelection' in patch) { if (typeof patch.fanSelection !== 'string' || !/^(auto|nvml:\d{1,2}:\d{1,2}|builtin:[a-f0-9]{64}|wmi:(LibreHardwareMonitor|OpenHardwareMonitor):[a-f0-9]{64})$/.test(patch.fanSelection)) throw new TypeError('Invalid fan selection'); next.fanSelection = patch.fanSelection; }
   for (const key of ['launchAtLogin', 'pinned', 'reducedMotion', 'energySaving', 'smoothWeather', 'alertsEnabled']) {
     if (key in patch) { if (typeof patch[key] !== 'boolean') throw new TypeError(`Invalid ${key}`); next[key] = patch[key]; }
   }

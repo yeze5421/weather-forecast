@@ -1,6 +1,6 @@
 {
   "name": "cirrus-weather-station",
-  "version": "1.2.6",
+  "version": "1.2.8",
   "description": "Cirrus · Turn computer activity into weather",
   "author": "Cirrus",
   "license": "MIT",
@@ -35,13 +35,16 @@
       "dist/**/*",
       "electron/**/*",
       "shared/**/*",
+      "vendor/**/*",
+      "THIRD_PARTY_NOTICES.md",
       "build/icon.png",
       "package.json",
       "LICENSE"
     ],
     "asar": true,
     "asarUnpack": [
-      "electron/sensors.ps1"
+      "electron/sensors.ps1",
+      "vendor/**/*"
     ],
     "win": {
       "target": "portable",

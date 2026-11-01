@@ -43,7 +43,7 @@ test('missing NVIDIA falls back to Windows, explains absent fans and preserves m
   let snapshot = h.sampler.getSnapshot();
   assert.equal(snapshot.gpu.usage, 35);
   assert.equal(snapshot.fan.rpm, null);
-  assert.match(snapshot.sensors.fan.detail, /LibreHardwareMonitor/);
+  assert.match(snapshot.sensors.fan.detail, /PawnIO/);
   windows.stdout.write(JSON.stringify({ kind: 'sensors', gpuUsage: null, fanRpm: 0, fanSource: 'LibreHardwareMonitor' }) + '\n');
   snapshot = h.sampler.getSnapshot();
   assert.equal(snapshot.gpu.usage, null);
@@ -85,7 +85,22 @@ test('driver RPM fallback is identified as a GPU fan, accepts stopped fans and n
   send({ fanRpm: 35, fanSource: 'untrusted percentage sensor' });
   assert.equal(h.sampler.getSnapshot().fan.rpm, null);
   send({ fanRpm: null, fanSource: null, fanStatus: 'provider_missing' });
-  assert.match(h.sampler.getSnapshot().sensors.fan.detail, /0\.9\.5\+/);
+  assert.match(h.sampler.getSnapshot().sensors.fan.detail, /PawnIO/);
+});
+
+test('CPU temperature is reported from an available sensor and cleared when stale or missing', t => {
+  const h = harness(t);
+  const windows = h.latest('powershell.exe');
+  const send = value => windows.stdout.write(JSON.stringify({ kind: 'sensors', ...value }) + '\n');
+  send({ cpuTemperatures: [{ name: 'CPU Package', value: 71.5, source: 'LibreHardwareMonitor' }], cpuTempStatus: 'live' });
+  assert.equal(h.sampler.getSnapshot().cpu.temperature, 71.5);
+  assert.match(h.sampler.getSnapshot().sensors.cpuTemperature.detail, /CPU Package/);
+  h.time(40000);
+  assert.equal(h.sampler.getSnapshot().cpu.temperature, null);
+  assert.equal(h.sampler.getSnapshot().sensors.cpuTemperature.state, 'stale');
+  send({ cpuTemperatures: [], cpuTempStatus: 'provider_missing' });
+  assert.equal(h.sampler.getSnapshot().cpu.temperature, null);
+  assert.match(h.sampler.getSnapshot().sensors.cpuTemperature.detail, /CPU temperature/);
 });
 
 test('fan selection follows the chosen sensor and never substitutes another when it disappears', t => {
@@ -110,10 +125,26 @@ test('fan selection follows the chosen sensor and never substitutes another when
   assert.equal(h.sampler.getSnapshot().fan.rpm, null);
 });
 
+test('built-in CPU and motherboard fans drive automatic fan selection', t => {
+  const h = harness(t);
+  const builtinId = `builtin:${'a'.repeat(64)}`;
+  h.latest('powershell.exe').stdout.write(JSON.stringify({ kind: 'sensors', cpuTemperatures: [{ name: 'CPU Package', value: 68, source: 'Cirrus sensors' }], cpuTempStatus: 'live', fanStatus: 'live', fans: [
+    { id: 'nvml:0:0', label: 'GPU Fan', rpm: 0, source: 'NVIDIA NVML' },
+    { id: builtinId, label: 'CPU Fan', rpm: 1800, source: 'Cirrus sensors', kind: 'system' },
+  ] }) + '\n');
+  const snapshot = h.sampler.getSnapshot();
+  assert.equal(snapshot.cpu.temperature, 68);
+  assert.equal(snapshot.fan.id, builtinId);
+  assert.equal(snapshot.fan.rpm, 1800);
+  h.sampler.setFanSelection(builtinId);
+  assert.equal(h.sampler.getSnapshot().fan.id, builtinId);
+});
+
 test('fan selection has a safe default and validates persisted sensor identifiers', () => {
   assert.equal(normalizePreferences({ source: 'gpu' }).fanSelection, 'auto');
   assert.equal(normalizePreferences({ fanSelection: 'nvml:0:1' }).fanSelection, 'nvml:0:1');
   assert.equal(normalizePreferences({ fanSelection: `wmi:LibreHardwareMonitor:${'a'.repeat(64)}` }).fanSelection.startsWith('wmi:'), true);
+  assert.equal(normalizePreferences({ fanSelection: `builtin:${'a'.repeat(64)}` }).fanSelection.startsWith('builtin:'), true);
   assert.throws(() => normalizePreferences({ fanSelection: 'nvml:0:1;command' }));
   assert.equal(defaults.fanSelection, 'auto');
 });

@@ -2,6 +2,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { spawn } = require('node:child_process');
 const { EventEmitter } = require('node:events');
+const { selectCpuTemperature } = require('./cpu-temperature.cjs');
 const GiB = 1024 ** 3;
 const percentage = value => typeof value === 'number' && Number.isFinite(value) ? Math.max(0, Math.min(100, value)) : null;
 const positive = value => typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : null;
@@ -20,6 +21,8 @@ class MetricsSampler extends EventEmitter {
     this.mode = 'active';
     this.previousCpu = cpuTimes();
     this.cpuUsage = null;
+    this.cpuTemperature = null;
+    this.cpuTemperatureDetail = 'Looking for a CPU temperature sensor.';
     this.gpu = { usage: null, name: 'GPU sensor unavailable', temperature: null };
     this.fan = { rpm: null, source: null };
     this.fans = [];
@@ -94,10 +97,11 @@ class MetricsSampler extends EventEmitter {
     const fan = fans.length || this.fanSelection !== 'auto' ? selected ? { ...selected, count: fans.length } : { rpm: null, source: null } : fanFresh ? { ...this.fan } : { rpm: null, source: null };
     return {
       timestamp,
-      cpu: { usage: this.cpuUsage, name: os.cpus()[0]?.model?.trim() || 'CPU' },
+      cpu: { usage: this.cpuUsage, name: os.cpus()[0]?.model?.trim() || 'CPU', temperature: fanFresh ? this.cpuTemperature?.value ?? null : null },
       gpu, memory: { usage: total > 0 ? percentage(used / total * 100) : 0, usedGB: used / GiB, totalGB: total / GiB },
       fan, fans, uptime: os.uptime(),
       sensors: {
+        cpuTemperature: { state: this.suspended ? 'paused' : fanFresh && this.cpuTemperature ? 'live' : !fanFresh && this.fanUpdated !== null ? 'stale' : 'unavailable', detail: fanFresh && this.cpuTemperature ? `${this.cpuTemperature.name} · ${this.cpuTemperature.source}` : this.cpuTemperatureDetail, updatedAt: this.fanUpdated },
         gpu: { state: this.suspended ? 'paused' : gpu.usage !== null ? 'live' : this.gpuUpdated !== null && !gpuFresh ? 'stale' : 'unavailable', detail: gpu.usage !== null ? (this.nvidiaHealthy ? 'NVIDIA driver sensor is connected.' : 'Windows GPU performance counters are connected.') : this.gpuDetail, updatedAt: this.gpuUpdated },
         fan: { state: this.suspended ? 'paused' : fan.rpm !== null ? 'live' : !fanFresh && this.fanUpdated !== null ? 'stale' : 'unavailable', detail: fan.rpm !== null ? fan.kind === 'gpu' ? `NVIDIA GPU fan RPM from the driver. ${fan.label || 'Fastest supported GPU fan'}; ${fan.count || 1} fan sensor(s). This is not the CPU fan.` : `${fan.source} fan sensor is connected.` : this.fanSelection !== 'auto' && fanFresh && !selected ? 'Selected fan is unavailable. Reconnect it or choose another fan in Settings.' : this.fanDetail, updatedAt: this.fanUpdated },
       },
@@ -210,9 +214,12 @@ class MetricsSampler extends EventEmitter {
         this.failures.windows = 0;
         const source = ['LibreHardwareMonitor', 'OpenHardwareMonitor', 'NVIDIA NVML'].includes(data.fanSource) ? data.fanSource : null;
         this.fan = { rpm: source ? positive(data.fanRpm) : null, source, kind: source === 'NVIDIA NVML' ? 'gpu' : 'system', count: Number.isInteger(data.fanCount) && data.fanCount > 0 && data.fanCount <= 256 ? data.fanCount : null, label: source === 'NVIDIA NVML' && typeof data.fanLabel === 'string' && /^GPU \d+ - Fan \d+$/.test(data.fanLabel) ? data.fanLabel : null };
-        this.fans = Array.isArray(data.fans) ? data.fans.slice(0, 256).filter(f => f && typeof f.id === 'string' && /^(nvml:\d{1,2}:\d{1,2}|wmi:(LibreHardwareMonitor|OpenHardwareMonitor):[a-f0-9]{64})$/.test(f.id) && ['LibreHardwareMonitor', 'OpenHardwareMonitor', 'NVIDIA NVML'].includes(f.source) && positive(f.rpm) !== null && typeof f.label === 'string').map(f => ({ id: f.id, label: f.label.replace(/[\x00-\x1f\x7f]/g, '').slice(0, 100) || 'Hardware fan', rpm: positive(f.rpm), source: f.source, kind: f.source === 'NVIDIA NVML' ? 'gpu' : 'system' })) : [];
+        this.fans = Array.isArray(data.fans) ? data.fans.slice(0, 256).filter(f => f && typeof f.id === 'string' && /^(nvml:\d{1,2}:\d{1,2}|builtin:[a-f0-9]{64}|wmi:(LibreHardwareMonitor|OpenHardwareMonitor):[a-f0-9]{64})$/.test(f.id) && ['Cirrus sensors', 'LibreHardwareMonitor', 'OpenHardwareMonitor', 'NVIDIA NVML'].includes(f.source) && positive(f.rpm) !== null && typeof f.label === 'string').map(f => ({ id: f.id, label: f.label.replace(/[\x00-\x1f\x7f]/g, '').slice(0, 100) || 'Hardware fan', rpm: positive(f.rpm), source: f.source, kind: f.source === 'NVIDIA NVML' ? 'gpu' : 'system' })) : [];
+        this.cpuTemperature = selectCpuTemperature(data.cpuTemperatures);
+        const cpuExplanations = { driver_missing: 'The built-in sensor needs the PawnIO driver. See the CPU temperature setup instructions.', builtin_unavailable: 'The built-in CPU sensor has no reading. Try running Cirrus as administrator; hardware support varies.', provider_missing: 'No supported CPU temperature sensor is available.', no_sensor: 'The hardware monitor is connected but does not report a supported CPU temperature.', access_denied: 'Windows denied access to the hardware monitor CPU sensor.' };
+        this.cpuTemperatureDetail = cpuExplanations[data.cpuTempStatus] || 'No supported CPU temperature reading is available.';
         this.fanUpdated = this.clock();
-        const explanations = { provider_missing: 'No supported fan RPM source is connected. NVIDIA driver RPM is used when available; other fans require a compatible WMI provider. LibreHardwareMonitor 0.9.5+ no longer provides WMI.', no_sensor: 'The monitor is connected, but no supported fan RPM reading is available.', access_denied: 'Windows denied access to the fan sensor provider and no supported NVIDIA RPM reading is available.' };
+        const explanations = { provider_missing: 'No supported fan RPM source is connected. Motherboard fans may require the PawnIO driver and supported hardware; NVIDIA driver RPM is used when available.', no_sensor: 'The monitor is connected, but no supported fan RPM reading is available.', access_denied: 'Windows denied access to the fan sensor provider and no supported NVIDIA RPM reading is available.' };
         this.fanDetail = explanations[data.fanStatus] || 'Fan RPM is not available from this hardware.';
         if (includeGpu && !this.nvidiaHealthy) {
           this.gpu = { usage: percentage(data.gpuUsage), name: typeof data.gpuName === 'string' ? data.gpuName.slice(0, 200) : 'Windows GPU', temperature: null };

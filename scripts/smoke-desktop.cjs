@@ -65,6 +65,7 @@ async function launch() {
   assert(snapshot.cpu.name && !snapshot.cpu.name.includes('Demo'));
   assert(snapshot.memory.totalGB > 0 && snapshot.memory.usedGB <= snapshot.memory.totalGB);
   assert(snapshot.memory.usage >= 0 && snapshot.memory.usage <= 100);
+  assert(snapshot.cpu.temperature === null || (Number.isFinite(snapshot.cpu.temperature) && snapshot.cpu.temperature > 0 && snapshot.cpu.temperature <= 150));
   assert(snapshot.fan.rpm === null || snapshot.fan.rpm >= 0);
   assert(snapshot.timestamp > Date.now() - 10000);
   await page.waitForFunction(() => /^\d/.test(document.querySelector('#cpu-value').textContent));
@@ -113,17 +114,33 @@ async function launch() {
   const rainbowSample = await page.evaluate(async () => {
     const sample = await window.weatherStation.getSnapshot();
     sample.weather = { id: 'sunny', source: 'cpu', reason: 'load', rainbow: true };
+    sample.cpu.temperature = 67;
+    sample.sensors.cpuTemperature = { state: 'live', detail: 'CPU Package · OpenHardwareMonitor' };
     return sample;
   });
   await desktop.evaluate(({ BrowserWindow }, sample) => BrowserWindow.getAllWindows()[0].webContents.send('weather:snapshot-changed', sample), rainbowSample);
   await page.waitForFunction(() => document.querySelector('.weather-card .weather-scene').dataset.rainbow === 'true');
   assert.match(await page.locator('#weather-description').textContent(), /rainbow/i);
+  assert.equal(await page.locator('#cpu-temperature').textContent(), '67 °C');
+  assert.equal(await page.locator('#mini-cpu-temperature').textContent(), '67°');
   assert.equal(await page.locator('.weather-card .weather-scene').getAttribute('data-weather'), 'sunny');
   assert(Number(await page.locator('.weather-card .ws-rainbow').evaluate(e => getComputedStyle(e).opacity)) > 0);
   await page.screenshot({ path: path.join(artifacts, 'desktop-rainbow.png') });
   check('rainbow appears on a sunny live snapshot without changing its weather');
   await page.evaluate(() => window.weatherStation.savePreferences({ reducedMotion: false }));
   await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.locator('#preview-toggle').click();
+  await page.locator('[data-demo="storm"]').click();
+  await page.waitForFunction(() => document.querySelector('.weather-card').dataset.weather === 'storm');
+  const lightning = page.locator('.weather-card .ws-lightning');
+  const lightningBefore = Number(await lightning.evaluate(element => getComputedStyle(element).opacity));
+  await page.waitForTimeout(1200);
+  const lightningAfter = Number(await lightning.evaluate(element => getComputedStyle(element).opacity));
+  assert(Math.abs(lightningAfter - lightningBefore) > 0.05, 'Thunderstorm lightning must visibly pulse');
+  await page.evaluate(() => window.weatherStation.savePreferences({ reducedMotion: true }));
+  await page.waitForFunction(() => getComputedStyle(document.querySelector('.weather-card .ws-lightning')).animationName === 'none');
+  check('thunderstorm lightning pulses and respects reduced motion');
+  await page.evaluate(() => window.weatherStation.savePreferences({ reducedMotion: false }));
   await page.locator('#preview-toggle').click();
   await page.locator('[data-demo="rainy"]').click();
   await page.waitForFunction(() => document.querySelector('.weather-card .weather-scene').dataset.wind === 'moving');
@@ -178,6 +195,7 @@ async function launch() {
   const csv = fs.readFileSync(csvPath, 'utf8');
   assert(csv.includes('"Mode","Time","Weather source"'));
   assert(csv.includes('"live"'));
+  assert(csv.includes('"CPU temperature (C)"'));
   assert(!csv.includes('"preview"'));
   assert(csv.trim().split(/\r?\n/).length > 1);
   assert.match(await page.locator('.history-stats').innerText(), /Last 24 hours/);
@@ -380,6 +398,7 @@ async function launch() {
   await page.locator('#preview-toggle').click();
   await page.locator('[data-demo="rainy"]').click();
   assert.equal(await page.locator('#gpu-temperature').textContent(), '73 °C');
+  assert.equal(await page.locator('#cpu-temperature').textContent(), '76 °C');
   await page.locator('#preview-toggle').click();
   await page.locator('#return-live').click();
   check('temperature preview, English diagnostics and opt-in alert settings');

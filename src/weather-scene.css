@@ -83,8 +83,8 @@
 @keyframes ws-raindrop-fall { from { transform: translate(5px, -12px); opacity: 0; } 20% { opacity: .85; } 80% { opacity: .7; } to { transform: translate(-17px, 36px); opacity: 0; } }
 @keyframes ws-fan-spin { to { transform: rotate(360deg); } }
 @keyframes ws-breeze-flow { 0%, 100% { stroke-dashoffset: 4; opacity: .25; } 50% { stroke-dashoffset: -5; opacity: .8; } }
-/* A slow, low-contrast glow instead of a flashing screen. */
-@keyframes ws-lightning-glow { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
+/* A slow, noticeable pulse; reduced-motion settings still disable it. */
+@keyframes ws-lightning-glow { 0%, 100% { opacity: .18; } 35%, 65% { opacity: 1; } 50% { opacity: .55; } }
 .weather-scene[data-reduced-motion="true"] *,
 .weather-scene[data-reduced-motion="true"] *::before,
 .weather-scene[data-reduced-motion="true"] *::after { animation: none !important; transition: none !important; }

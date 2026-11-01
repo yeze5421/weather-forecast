@@ -124,7 +124,7 @@ app.innerHTML = `
 `;
 
 $('#expand-button').insertAdjacentHTML('beforebegin', `<button id="mini-button" class="icon-button" title="Mini desktop mode" aria-label="Mini desktop mode">${icon('monitor')}</button>`);
-$('.metrics-grid').insertAdjacentHTML('afterend', `<div class="thermal-strip"><span>GPU temperature <strong id="gpu-temperature">—</strong></span><span id="thermal-note">Waiting for a temperature sensor</span></div>`);
+$('.metrics-grid').insertAdjacentHTML('afterend', `<div class="thermal-strip"><span>CPU temperature <strong id="cpu-temperature">—</strong></span><span>GPU temperature <strong id="gpu-temperature">—</strong></span></div>`);
 $('#settings-view .about-card').insertAdjacentHTML('beforebegin', `
   <div class="settings-card upgrades-settings">
     <h3>Desktop and power</h3>
@@ -138,11 +138,12 @@ $('#settings-view .about-card').insertAdjacentHTML('beforebegin', `
     <p id="notification-status" class="diagnostic-note">Alerts are off by default.</p>
   </div>
   <section class="settings-card diagnostics-card" aria-label="Sensor diagnostics"><div class="diagnostic-heading"><h3>Sensor health</h3><button id="retry-sensors" class="secondary-button">Reconnect</button></div><p class="diagnostic-note">Actual sensor status, including while Preview is open.</p>
+    <div class="sensor-row"><span>CPU temperature <b id="cpuTemperature-status">Waiting</b></span><p id="cpuTemperature-detail">Waiting for sensor status.</p></div>
     <div class="sensor-row"><span>GPU <b id="gpu-status">Waiting</b></span><p id="gpu-detail">Waiting for sensor status.</p></div>
     <div class="sensor-row"><span>Fan <b id="fan-status">Waiting</b></span><p id="fan-detail">Waiting for sensor status.</p></div>
     <p id="power-status" class="diagnostic-note">Local sampling</p>
   </section>`);
-app.insertAdjacentHTML('beforeend', `<section class="mini-widget" aria-label="Mini desktop weather"><header class="mini-header"><span>Cirrus <small id="mini-mode-label">LIVE SKY</small></span><div><button id="mini-source" aria-label="Switch CPU or GPU">CPU</button><button id="mini-open" title="Open full station" aria-label="Open full station">${icon('expand')}</button><button id="mini-hide" title="Hide to system tray" aria-label="Hide to system tray">${icon('close')}</button></div></header><div class="mini-sky"><div class="weather-scene mini-scene" aria-hidden="true">${weatherSceneMarkup()}</div><div class="mini-reading"><span id="mini-weather">Awaiting data</span><strong id="mini-usage">—</strong><small id="mini-sensor">CPU usage</small></div></div><footer class="mini-footer"><span>Memory <b id="mini-memory">—</b></span><span>GPU <b id="mini-temperature">—</b></span><span>Fan <b id="mini-fan">—</b></span></footer></section>`);
+app.insertAdjacentHTML('beforeend', `<section class="mini-widget" aria-label="Mini desktop weather"><header class="mini-header"><span>Cirrus <small id="mini-mode-label">LIVE SKY</small></span><div><button id="mini-source" aria-label="Switch CPU or GPU">CPU</button><button id="mini-open" title="Open full station" aria-label="Open full station">${icon('expand')}</button><button id="mini-hide" title="Hide to system tray" aria-label="Hide to system tray">${icon('close')}</button></div></header><div class="mini-sky"><div class="weather-scene mini-scene" aria-hidden="true">${weatherSceneMarkup()}</div><div class="mini-reading"><span id="mini-weather">Awaiting data</span><strong id="mini-usage">—</strong><small id="mini-sensor">CPU usage</small></div></div><footer class="mini-footer"><span>Memory <b id="mini-memory">—</b></span><span>CPU <b id="mini-cpu-temperature">—</b></span><span>GPU <b id="mini-temperature">—</b></span><span>Fan <b id="mini-fan">—</b></span></footer></section>`);
 
 if (!desktop) $$('.desktop-action').forEach(el => { el.hidden = true; });
 
@@ -254,7 +255,7 @@ function renderFanOptions() {
 
 function renderDiagnostics() {
   renderFanOptions();
-  for (const type of ['gpu', 'fan']) {
+  for (const type of ['cpuTemperature', 'gpu', 'fan']) {
     const sensor = liveSnapshot?.sensors?.[type];
     $(`#${type}-status`).textContent = sensor ? sensor.state[0].toUpperCase() + sensor.state.slice(1) : 'Preview only';
     $(`#${type}-detail`).textContent = sensor?.detail || 'Live sensor diagnostics are available in the desktop app.';
@@ -327,8 +328,12 @@ function render() {
   const weather = state.id;
   const temperature = snapshot?.gpu?.temperature;
   const hasTemperature = Number.isFinite(temperature);
+  const cpuTemperature = snapshot?.cpu?.temperature;
+  const hasCpuTemperature = Number.isFinite(cpuTemperature);
+  $('#cpu-temperature').textContent = hasCpuTemperature ? `${number(cpuTemperature)} °C` : '—';
+  $('#cpu-temperature').title = demo ? 'Demonstration reading' : snapshot?.sensors?.cpuTemperature?.detail || 'CPU temperature unavailable.';
+  $('#mini-cpu-temperature').title = $('#cpu-temperature').title;
   $('#gpu-temperature').textContent = hasTemperature ? `${number(temperature)} °C` : '—';
-  $('#thermal-note').textContent = hasTemperature ? (demo ? 'Demo temperature' : 'NVIDIA GPU sensor') : 'Temperature unavailable on this sensor';
   $('.thermal-strip').classList.toggle('is-hot', hasTemperature && temperature >= preferences.temperatureThreshold);
   const rainbow = !demo && weather === 'sunny' && Boolean(stable?.rainbow);
   $('#mini-weather').textContent = rainbow ? 'Rainbow after rain' : state.label;
@@ -336,6 +341,7 @@ function render() {
   $('#mini-sensor').textContent = `${preferences.source.toUpperCase()} usage`;
   $('#mini-source').textContent = preferences.source.toUpperCase();
   $('#mini-memory').textContent = formatPercent(mem?.usage);
+  $('#mini-cpu-temperature').textContent = hasCpuTemperature ? `${number(cpuTemperature)}°` : '—';
   $('#mini-temperature').textContent = hasTemperature ? `${number(temperature)}°` : '—';
   $('#mini-fan').textContent = Number.isFinite(rpm) ? `${number(rpm)} RPM` : '—';
   $('#mini-mode-label').textContent = demo ? 'PREVIEW' : 'LIVE SKY';
@@ -442,8 +448,8 @@ function renderHistory() {
 }
 
 function exportHistory() {
-  const rows = [['Mode','Time','Weather source','Weather','CPU (%)','GPU (%)','Memory (%)','Memory used (GB)','Memory total (GB)','Fan (RPM)','GPU temperature (C)']];
-  for (const sample of selectedHistory()) rows.push([demo ? 'preview' : 'live',new Date(sample.timestamp).toISOString(),preferences.source.toUpperCase(),sampleWeather(sample).label,sample.cpu?.usage,sample.gpu?.usage,sample.memory?.usage,sample.memory?.usedGB,sample.memory?.totalGB,sample.fan?.rpm,sample.gpu?.temperature]);
+  const rows = [['Mode','Time','Weather source','Weather','CPU (%)','GPU (%)','Memory (%)','Memory used (GB)','Memory total (GB)','Fan (RPM)','GPU temperature (C)','CPU temperature (C)']];
+  for (const sample of selectedHistory()) rows.push([demo ? 'preview' : 'live',new Date(sample.timestamp).toISOString(),preferences.source.toUpperCase(),sampleWeather(sample).label,sample.cpu?.usage,sample.gpu?.usage,sample.memory?.usage,sample.memory?.usedGB,sample.memory?.totalGB,sample.fan?.rpm,sample.gpu?.temperature,sample.cpu?.temperature]);
   const text = '\uFEFF' + rows.map(row => row.map(v=>`"${String(v ?? '').replaceAll('"','""')}"`).join(',')).join('\r\n');
   const url = URL.createObjectURL(new Blob([text], {type:'text/csv;charset=utf-8'}));
   const a = document.createElement('a'); a.href = url; a.download = `Cirrus-${demo ? 'preview' : 'live'}-${new Date().toISOString().slice(0,10)}.csv`; a.click(); setTimeout(()=>URL.revokeObjectURL(url),5000);

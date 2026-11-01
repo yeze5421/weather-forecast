@@ -2,9 +2,9 @@
 
 **A Windows tray widget that turns CPU/GPU load into animated weather, high memory use into thunderstorms, and fan speed into wind — entirely offline.**
 
-**[Download v1.2.5 for Windows — portable .exe](https://github.com/yeze5421/weather-forecast/releases/download/v1.2.5/Cirrus-Weather-1.2.5.exe)** · [SHA-256](https://github.com/yeze5421/weather-forecast/releases/download/v1.2.5/SHA256.txt) · [Release notes](https://github.com/yeze5421/weather-forecast/releases/tag/v1.2.5)
+**[Download v1.2.6 for Windows — portable .exe](https://github.com/yeze5421/weather-forecast/releases/download/v1.2.6/Cirrus-Weather-1.2.6.exe)** · [SHA-256](https://github.com/yeze5421/weather-forecast/releases/download/v1.2.6/SHA256.txt) · [Release notes](https://github.com/yeze5421/weather-forecast/releases/tag/v1.2.6)
 
-Windows 10 / 11 · x64 · No installation or account required · MIT License
+Windows 10 / 11 · x64 · Portable app · No account required · MIT License
 
 ![Cirrus switching between dark themes and animated weather](docs/cirrus-preview.gif)
 
@@ -14,7 +14,7 @@ Windows 10 / 11 · x64 · No installation or account required · MIT License
 
 **[Download the latest release](https://github.com/yeze5421/weather-forecast/releases/latest)** for Windows 10 / 11 x64. Download the `.exe` attachment and double-click it. Node.js, Python, .NET, accounts, API keys and servers are not required.
 
-This checkout is **1.2.6 — Rainbow After Rain**. Its local portable build is `release/Cirrus-Weather-1.2.6.exe`; `Launch-Cirrus.cmd` opens the most recently built portable executable. GitHub's automatic Source code archives contain source files and require the development setup below.
+This checkout is **1.2.8 — Built-in Sensors**. Its local portable build is `release/Cirrus-Weather-1.2.8.exe`; `Launch-Cirrus.cmd` opens the most recently built portable executable. GitHub's automatic Source code archives contain source files and require the development setup below.
 
 - Left-click the tray weather icon to open or hide the widget.
 - Right-click to select CPU / GPU weather, toggle Always on top, or Quit Cirrus.
@@ -46,7 +46,7 @@ Fan RPM controls the windmill and wind animation. Missing RPM readings leave the
 - **Energy saving:** visible CPU / memory readings follow your chosen interval. Background and battery modes use at least five seconds; a locked screen uses at least fifteen seconds. NVIDIA polling changes from four seconds to ten / thirty seconds, and fan / fallback polling from ten seconds to fifteen / thirty seconds. Windows fallback GPU polling follows the fan service interval.
 - Hidden windows receive no periodic reading pushes and their animations pause. Session history continues in the main process and refreshes when you reopen the window. During sleep, sensor processes stop; wake reconnects them and discards old readings. Energy saving can be disabled; hidden rendering remains paused.
 - **Sensor health** in Settings explains missing, stale, disconnected or blocked sensors. Failed processes retry with a capped backoff; unresponsive processes are restarted. Reconnect offers a manual retry, limited to once per ten seconds. Fan readings still require a supported driver or a compatible hardware provider.
-- **GPU temperature** appears in the overview and mini footer when NVIDIA supplies a reading, and in CSV exports. Other GPU sources leave temperature blank. CPU temperature is not collected.
+- **CPU and GPU temperatures** appear in the overview, mini footer and CSV exports when supported readings are available. CPU temperature uses the bundled sensor library and may require the separately installed PawnIO driver; NVIDIA supplies GPU temperature through its driver. Unavailable readings stay blank.
 - **Quiet alerts** are off by default. Enable them in Settings for selected CPU / GPU load at or above 90%, memory at the storm threshold, or GPU temperature at a chosen threshold (85 °C by default). Conditions must persist for 30, 60 or 120 seconds; every alert kind has a fifteen-minute cooldown. Alerts use live data only and are suppressed while the screen is locked. Windows notification settings may suppress delivery. No notification or reading is uploaded.
 
 ![Cirrus mini desktop using labeled demo readings](docs/mini-desktop.png)
@@ -54,9 +54,10 @@ Fan RPM controls the windmill and wind animation. Missing RPM readings leave the
 ## Hardware and data
 
 - **CPU / memory:** actual system readings. CPU utilization needs one sampling interval before its first value.
+- **CPU temperature:** reads a CPU Package or compatible CPU core temperature using the bundled LibreHardwareMonitor sensor library or a compatible WMI provider, preferring package or CPU-die temperature and otherwise the highest available core reading. This is separate from CPU utilization and depends on hardware and provider support. The Windows ACPI thermal-zone temperature is not assumed to be the CPU temperature.
 - **NVIDIA GPU:** the driver's `nvidia-smi`, sampled every four seconds in active mode. With multiple NVIDIA GPUs, Cirrus selects the busiest adapter.
 - **Other Windows GPUs:** Windows GPU performance counters, sampled every ten seconds in active mode, using the busiest physical engine. Unsupported drivers leave the reading unavailable.
-- **Fan RPM:** compatible WMI fan sensors take priority. If they are unavailable, Cirrus reads supported NVIDIA GPU fan RPM directly through the existing driver's NVML interface. No extra monitor is needed for supported NVIDIA devices. The fastest available reading is used; the UI identifies GPU fans explicitly. Other hardware still needs a compatible sensor provider. Cirrus installs no drivers, changes no fan settings and never converts a fan percentage into RPM.
+- **Fan RPM:** built-in motherboard sensors and compatible WMI fan sensors take priority. If they are unavailable, Cirrus reads supported NVIDIA GPU fan RPM directly through the existing driver's NVML interface. No extra monitor is needed for supported NVIDIA devices. The fastest available reading is used; the UI identifies GPU fans explicitly. Motherboard sensor access may require the PawnIO driver and administrator privileges. Cirrus installs no drivers, changes no fan settings and never converts a fan percentage into RPM.
 - The sampling setting controls CPU / memory and UI updates. GPU / fan sampling uses the separate intervals above, adjusted by Energy saving.
 - Preferences and readings stay on this computer. There is no account, remote API, telemetry upload or automatic update service in the application code.
 - History retains up to the last 24 hours of the current session, sampled every 10 seconds, and clears on exit. The chart includes 1-hour, 6-hour and 24-hour views. CSV export is an explicit user action. Preview and live records are kept separately.
@@ -67,8 +68,12 @@ Fan RPM controls the windmill and wind animation. Missing RPM readings leave the
 
 - A missing reading means no supported RPM source is connected. A measured **0 RPM** means the reported fan is stopped; both leave the windmill still.
 - Supported NVIDIA GPUs are detected automatically through the installed driver. The caption says **GPU fan · NVIDIA**, and Sensor health identifies the adapter / fan and number of available fan sensors. This is a GPU fan reading, not a CPU fan reading. NVML reports driver-provided operating RPM; it does not prove that an obstructed physical fan is spinning.
-- CPU, case and non-NVIDIA fans need a compatible hardware provider. Recent **LibreHardwareMonitor 0.9.5+ removed WMI**; merely running that version will not supply the WMI data this application supports. See the [maintainer's explanation](https://github.com/LibreHardwareMonitor/LibreHardwareMonitor/issues/2143). Cirrus does not enable its web server or expose a network listener.
+- CPU and case fans are read by the bundled library when supported by your hardware and driver. A selected fan reporting 0 RPM stays still; choose another detected fan in Settings or use Auto. Cirrus does not change fan settings or expose a network listener.
 - **Preview → Heavy rain** supplies clearly labeled demo RPM and rotates the windmill without changing hardware settings. **Reduce motion**, including the Windows motion preference, deliberately pauses the animation.
+
+### If CPU temperature is unavailable
+
+Open **Settings → Sensor health → CPU temperature** for the reason. Cirrus bundles LibreHardwareMonitor's sensor library directly; no separate monitor application needs to run. On compatible computers, the library may need the separately installed [official PawnIO driver](https://github.com/namazso/PawnIO.Setup/releases) and, depending on hardware and permissions, running Cirrus as administrator. Installing a driver requires administrator approval. Hardware support varies, so a temperature or fan reading cannot be guaranteed. Unavailable readings remain blank; Cirrus does not estimate CPU temperature from an ACPI thermal zone or control fans. Cirrus also supports compatible existing WMI providers.
 
 ## Themes
 
@@ -111,16 +116,16 @@ Preferences live in `preferences.json` under the current user's Cirrus applicati
 
 ## Update GitHub
 
-The Windows workflow tests and builds pushes to `main`, pull requests and manual runs. Push a matching version tag, such as `v1.2.5`, to run the same checks, test the packaged desktop, generate SHA-256 and publish the tested EXE as a GitHub Release. A normal push creates a downloadable workflow artifact; a version tag publishes a public Release. Only the EXE, checksum and release notes enter the build artifact. See [PUBLISHING.md](PUBLISHING.md) and [RELEASE_NOTES.md](RELEASE_NOTES.md).
+The Windows workflow tests and builds pushes to `main`, pull requests and manual runs. Push a matching version tag, such as `v1.2.6`, to run the same checks, test the packaged desktop, generate SHA-256 and publish the tested EXE as a GitHub Release. A normal push creates a downloadable workflow artifact; a version tag publishes a public Release. Only the EXE, checksum and release notes enter the build artifact. See [PUBLISHING.md](PUBLISHING.md) and [RELEASE_NOTES.md](RELEASE_NOTES.md).
 
 Local `artifacts/` contains hardware test readings, screenshots and browser profiles. Build diagnostics in `release/` may include local paths. These directories are excluded from Git and must not be uploaded as a whole.
 
 ## License
 
-[MIT License](LICENSE). Use, modification, redistribution and commercial use are permitted with the copyright and license notice preserved. Electron, Chromium and other third-party components keep their own licenses, included in the application package.
+[MIT License](LICENSE). Use, modification, redistribution and commercial use are permitted with the copyright and license notice preserved. Electron, Chromium and other third-party components keep their own licenses. See [third-party notices](THIRD_PARTY_NOTICES.md) for the bundled hardware library and its dependencies.
 
 References: [Electron Tray](https://www.electronjs.org/docs/latest/api/tray), [Vite](https://vite.dev/guide/).
 
 ### Choose a fan
 
-In **Settings → Fan sensor**, select a detected fan or keep **Auto** to follow the fastest available fan (hardware-monitor sensors take priority over NVIDIA GPU fans). The selection is saved on this computer. An unavailable selected fan stays blank until it returns or you choose another sensor. Supported NVIDIA GPU fans use driver-reported RPM; CPU and case fans require a compatible WMI hardware monitor. Fan availability depends on your hardware and sensor provider.
+In **Settings → Fan sensor**, select a detected fan or keep **Auto** to follow the fastest available fan (hardware-monitor sensors take priority over NVIDIA GPU fans). The selection is saved on this computer. An unavailable selected fan stays blank until it returns or you choose another sensor. Supported NVIDIA GPU fans use driver-reported RPM; CPU and case fans use supported built-in motherboard sensors or a compatible WMI provider. Fan availability depends on your hardware and sensor provider.

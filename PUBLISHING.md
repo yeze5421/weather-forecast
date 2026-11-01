@@ -2,22 +2,23 @@
 
 ## Runtime requirements
 
-Cirrus 1.2.6 targets Windows 10 / 11 x64. Electron bundles Chromium, Node.js and the application code. End users need no additional development runtime, account, API key, server or weather service. Normal observations work offline.
+Cirrus 1.2.8 targets Windows 10 / 11 x64. Electron bundles Chromium, Node.js and the application code. End users need no additional development runtime, account, API key, server or weather service. Normal observations work offline.
 
 | Feature | Source and requirements |
 | --- | --- |
 | CPU / memory | Built-in Node.js system interfaces; no additional monitoring software |
+| CPU temperature | Bundled LibreHardwareMonitor library; compatible hardware and a separately installed PawnIO driver may be required |
 | NVIDIA GPU | Driver-provided `nvidia-smi`, with a Windows performance counter fallback |
 | Other GPUs | Windows PowerShell / CIM performance counters; support depends on the system and driver |
-| Fan RPM | Compatible WMI fan sensors, or direct NVIDIA NVML RPM through an existing driver; recent LibreHardwareMonitor 0.9.5+ no longer exposes WMI |
+| Fan RPM | Bundled motherboard sensor library, compatible WMI fan sensors, or direct NVIDIA NVML RPM; driver and hardware support vary |
 
-Cirrus itself installs no drivers, changes no fan settings, and requires no administrator privileges for basic observations. Device policies may restrict PowerShell, hardware queries or unsigned applications. macOS, Linux and Windows ARM64 distributions have not been validated.
+Cirrus itself installs no drivers, changes no fan settings, and requires no administrator privileges for basic observations. Supported CPU temperature and motherboard fan readings may require the separately installed official PawnIO driver and administrator privileges. Device policies may restrict PowerShell, hardware queries or unsigned applications. macOS, Linux and Windows ARM64 distributions have not been validated.
 
 Development requires Node.js 22.12+, npm and network access to download dependencies. Use `npm ci`, `npm test` and `npm run dist` on Windows. If the official Electron distribution is already available locally, `npm run dist -- --config.electronDist=node_modules/electron/dist` can reuse it.
 
 ## Commit the next desktop edition
 
-The repository is [yeze5421/weather-forecast](https://github.com/yeze5421/weather-forecast). The next release is **1.2.6**, with a brighter brightness range and a rainbow after long rain.
+The repository is [yeze5421/weather-forecast](https://github.com/yeze5421/weather-forecast). The next release is **1.2.8**, with built-in CPU temperature and motherboard fan support.
 
 From the project directory:
 
@@ -25,7 +26,7 @@ From the project directory:
 git add -A
 git diff --cached --stat
 git diff --cached --name-only
-git commit -m "Add rainbow and brighter window"
+git commit -m "Integrate CPU and fan sensors"
 git push
 ```
 
@@ -40,8 +41,8 @@ A tag matching package.json publishes the tested artifact in a public GitHub Rel
 After committing and pushing a new version:
 
 ```powershell
-git tag v1.2.6
-git push origin v1.2.6
+git tag v1.2.8
+git push origin v1.2.8
 gh run list --workflow windows.yml
 ```
 
@@ -64,7 +65,7 @@ The executable remains unsigned. No signing certificate or paid service is requi
 
 ## Public file scope
 
-Commit first-party source, tests, scripts, `public/favicon.svg`, `shared/`, the demo GIF and mini preview in `docs/`, the two application icons in `build/`, the workflow in `.github/`, manifests, the lockfile, documentation, `Launch-Cirrus.cmd` and `LICENSE`.
+Commit first-party source, tests, scripts, `public/favicon.svg`, `shared/`, the demo GIF and mini preview in `docs/`, the two application icons in `build/`, the workflow in `.github/`, manifests, the lockfile, documentation, `Launch-Cirrus.cmd`, `vendor/hardware-monitor/`, `THIRD_PARTY_NOTICES.md` and `LICENSE`.
 
 Release assets should contain only the portable executable and its checksum file. Exclude `node_modules/`, `dist/`, `artifacts/`, `publish/`, the rest of `release/`, browser profiles, exported CSVs, screenshots, logs, `builder-debug.yml`, environment files and signing material.
 
@@ -72,7 +73,7 @@ Git author names and email addresses remain in commit history. Use a public hand
 
 ## Privacy review scope
 
-The review covers first-party code, configuration, dependency download URLs, the packaged app archive and the external sensor script. The portable payload is compared with the tested folder build using SHA-256.
+The review covers first-party code, configuration, dependency download URLs, the packaged app archive and the sensor script; bundled third-party binaries retain their upstream license notices. The portable payload is compared with the tested folder build using SHA-256.
 
 - No account credentials, API keys, private keys, actual user profile paths or project absolute paths were found in the reviewed first-party content. The copyright notice uses the public GitHub handle `yeze5421`.
 - Dependency download URLs use the public npm registry without embedded credentials. One upstream deprecation notice contains a maintainer's public contact email.
